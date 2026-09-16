@@ -8,10 +8,11 @@ from functools import partial
 
 from arena.application.controller import FighterSetup, GameController, MatchSetup
 from arena.domain.catalog import CHARACTERS, EQUIPMENT, final_stats
-from arena.domain.model import ActionRequest, BattleSnapshot, Phase
+from arena.domain.model import ActionRequest, BattleSnapshot, CharacterSnapshot, Phase
 from arena.infrastructure.records import Settings
 from arena.infrastructure.storage import StorageError, load_match
-from .formatting import RULES, event_text, fighter_text, result_text
+from .formatting import RULES, event_text, result_text
+from . import theme
 
 
 class ArenaWindow:
@@ -21,18 +22,11 @@ class ArenaWindow:
         self._callback: str | None = None
         self._screen = "menu"
         root.title("Боевая арена")
-        root.geometry("1100x800")
+        root.geometry("1180x820")
         root.minsize(1000, 700)
         root.protocol("WM_DELETE_WINDOW", self.close)
-        self.style = ttk.Style(root)
-        self.style.theme_use("clam")
-        self.style.configure("TFrame", background="#f3f0e8")
-        self.style.configure("TLabel", background="#f3f0e8", foreground="#202c38")
-        self.style.configure("TButton", padding=(12, 8))
-        self.style.configure("Health.Horizontal.TProgressbar", background="#48836b")
-        self.style.configure("Energy.Horizontal.TProgressbar", background="#5488a2")
-        self.style.configure("Title.TLabel", font=("Helvetica", 28, "bold"))
-        self.style.configure("Heading.TLabel", font=("Helvetica", 16, "bold"))
+        self.style, self.display_font, self.body_font = theme.configure(
+            root, controller.settings.font_size)
         self.container = ttk.Frame(root, padding=24)
         self.container.pack(fill="both", expand=True)
         self.apply_font()
@@ -43,7 +37,7 @@ class ArenaWindow:
 
     def apply_font(self) -> None:
         for name in ("TkDefaultFont", "TkTextFont", "TkMenuFont"):
-            font.nametofont(name).configure(size=self.controller.settings.font_size)
+            font.nametofont(name).configure(family=self.body_font, size=self.controller.settings.font_size)
 
     def cancel_bot(self) -> None:
         if self._callback is not None:
@@ -59,20 +53,24 @@ class ArenaWindow:
     def title(self, text: str, subtitle: str = "") -> None:
         ttk.Label(self.container, text=text, style="Title.TLabel").pack(anchor="w", pady=(0, 8))
         if subtitle:
-            ttk.Label(self.container, text=subtitle, wraplength=950).pack(anchor="w", pady=(0, 18))
+            ttk.Label(self.container, text=subtitle, wraplength=950, style="Muted.TLabel").pack(anchor="w", pady=(0, 18))
 
     def button(self, parent: tk.Misc, text: str,
                command: Callable[[], object],
                state: Literal["normal", "disabled"] = "normal") -> ttk.Button:
         # Widget packing stays explicit at call sites to keep screens readable.
-        return ttk.Button(parent, text=text, command=command, state=state)
+        return ttk.Button(parent, text=text, command=command, state=state,
+                          style="Primary.TButton" if text in ("Новый бой", "Начать бой", "Продолжить", "Применить", "Реванш") else "TButton")
 
     def text_panel(self, parent: tk.Misc, text: str, height: int = 12) -> tk.Text:
         frame = ttk.Frame(parent)
         frame.pack(fill="both", expand=True, pady=10)
         field = tk.Text(frame, wrap="word", height=height, padx=14, pady=12,
-                        background="#fffdf7", foreground="#202c38", relief="flat",
-                        font=("Helvetica", self.controller.settings.font_size))
+                        background=theme.SURFACE, foreground=theme.MUTED, relief="flat",
+                        selectbackground=theme.LINE, selectforeground=theme.TEXT,
+                        highlightthickness=0, borderwidth=0,
+                        spacing1=3, spacing3=5,
+                        font=(self.body_font, self.controller.settings.font_size))
         scroll = ttk.Scrollbar(frame, orient="vertical", command=field.yview)
         field.configure(yscrollcommand=scroll.set)
         scroll.pack(side="right", fill="y")
@@ -84,18 +82,31 @@ class ArenaWindow:
     def menu(self) -> None:
         self.controller.pause()
         self.clear("menu")
-        self.title("БОЕВАЯ АРЕНА", "Один ход. Одно решение. Воин, маг или следопыт — выберите свой стиль боя.")
-        controls = ttk.Frame(self.container)
-        controls.pack(anchor="w", pady=20)
+        shell = ttk.Frame(self.container)
+        shell.pack(fill="both", expand=True)
+        left = ttk.Frame(shell, padding=(14, 15, 0, 12))
+        left.pack(side="left", fill="both", expand=True)
+        theme.ArenaArt(shell).pack(side="right", fill="both", expand=True, padx=(30, 10))
+        ttk.Label(left, text="Боевая\nарена", font=(self.display_font, 46),
+                  foreground=theme.TEXT).pack(anchor="w", pady=(0, 18))
+        ttk.Label(left, text="Выберите героя. Продумайте ход.\nПобедите на своей стороне арены.",
+                  style="Muted.TLabel", justify="left").pack(anchor="w", pady=(0, 28))
+        controls = ttk.Frame(left)
+        controls.pack(fill="x", padx=(0, 35))
         self.button(controls, "Новый бой", self.setup).pack(fill="x", pady=5)
         snapshot = self.controller.snapshot()
         self.button(controls, "Продолжить", self.resume,
                     state="normal" if snapshot else "disabled").pack(fill="x", pady=5)
         self.button(controls, "Загрузить бой", lambda: self.slots(False, self.menu)).pack(fill="x", pady=5)
-        for label, command in (("История матчей", self.history), ("Правила", self.rules),
-                               ("Настройки", self.settings), ("Выход", self.close)):
-            self.button(controls, label, command).pack(fill="x", pady=5)
-        ttk.Label(self.container, text="Локальная игра · Без аккаунтов и подключения к сети").pack(side="bottom", anchor="w")
+        links = ttk.Frame(controls)
+        links.pack(fill="x", pady=(18, 0))
+        for index, (label, command) in enumerate((("История матчей", self.history), ("Правила", self.rules),
+                               ("Настройки", self.settings), ("Выход", self.close))):
+            self.button(links, label, command).grid(row=index // 2, column=index % 2,
+                                                   sticky="ew", padx=3, pady=4)
+            links.columnconfigure(index % 2, weight=1)
+        ttk.Label(self.container, text="Пошаговые поединки    •    Два игрока или бой с ботом",
+                  style="Muted.TLabel").pack(anchor="w", padx=14, pady=(16, 0))
 
     def setup(self) -> None:
         self.clear("setup")
@@ -160,6 +171,39 @@ class ArenaWindow:
         self.controller.resume()
         self.battle()
 
+    def fighter_card(self, parent: tk.Misc, fighter: CharacterSnapshot,
+                     active: bool) -> None:
+        border = tk.Frame(parent, background=theme.GOLD if active else theme.LINE, padx=1, pady=1)
+        border.pack(side="left", fill="both", expand=True, padx=5)
+        card = ttk.Frame(border, style="Card.TFrame", padding=12)
+        card.pack(fill="both", expand=True)
+        heading = ttk.Frame(card, style="Card.TFrame")
+        heading.pack(fill="x")
+        theme.Emblem(heading, fighter.archetype, 64).pack(side="left", padx=(0, 16))
+        names = ttk.Frame(heading, style="Card.TFrame")
+        names.pack(side="left", fill="x", expand=True)
+        ttk.Label(names, text=f"{CHARACTERS[fighter.archetype].name}   /   {fighter.id}",
+                  style="CardMuted.TLabel").pack(anchor="w")
+        ttk.Label(names, text=fighter.name, style="CardName.TLabel").pack(anchor="w", pady=3)
+        ttk.Label(names, text="Сейчас ходит" if active else "Ожидает хода",
+                  style="CardMuted.TLabel", foreground=theme.GOLD if active else theme.MUTED).pack(anchor="w")
+        for label, value, maximum, style in (
+            ("Здоровье", fighter.hp, fighter.stats.max_hp, "Health"),
+            ("Энергия", fighter.energy, fighter.stats.max_energy, "Energy"),
+        ):
+            row = ttk.Frame(card, style="Card.TFrame")
+            row.pack(fill="x", pady=(6, 3))
+            ttk.Label(row, text=label, style="CardMuted.TLabel").pack(side="left")
+            ttk.Label(row, text=f"{value} / {maximum}", style="Card.TLabel").pack(side="right")
+            ttk.Progressbar(card, style=f"{style}.Horizontal.TProgressbar",
+                            maximum=max(1, maximum), value=value).pack(fill="x")
+        stats = fighter.stats
+        ttk.Label(card, text=f"Атака {stats.attack}     Магия {stats.magic}     Броня {stats.armor}     Скорость {stats.speed}",
+                  style="CardMuted.TLabel").pack(anchor="w", pady=(8, 4))
+        effects = " · ".join("Защита" if e.effect_id == "guard" else f"Яд: {e.remaining}" for e in fighter.effects)
+        ttk.Label(card, text=effects or EQUIPMENT[fighter.equipment].name,
+                  style="CardMuted.TLabel", foreground=theme.GOLD if effects else theme.MUTED).pack(anchor="w")
+
     def battle(self) -> None:
         snapshot = self.controller.snapshot()
         if snapshot is None:
@@ -170,40 +214,54 @@ class ArenaWindow:
             return
         self.clear("battle")
         bot_turn = self.controller.is_bot_turn()
-        caption = "Ход бота" if bot_turn else "Ваш ход"
-        self.title(f"Ход {snapshot.turn} · Раунд {snapshot.round}",
-                   f"{caption}: {snapshot.active.name} [{snapshot.active_id}]")
+        top = ttk.Frame(self.container)
+        top.pack(fill="x", pady=(0, 14))
+        ttk.Label(top, text=f"Раунд {snapshot.round}", style="Title.TLabel").pack(side="left")
+        ttk.Label(top, text=f"Ход {snapshot.turn} / 100   ·   " +
+                  ("Бот выбирает действие" if bot_turn else f"Ваш ход, {snapshot.active.name}"),
+                  style="Gold.TLabel").pack(side="right")
         cards = ttk.Frame(self.container)
-        cards.pack(fill="x", pady=8)
+        cards.pack(fill="x", pady=(0, 18))
         for fighter in snapshot.fighters:
-            active = " · АКТИВНЫЙ" if fighter.id == snapshot.active_id else ""
-            card = ttk.LabelFrame(cards, text=f"{fighter.name} [{fighter.id}]{active}", padding=14)
-            card.pack(side="left", fill="both", expand=True, padx=6)
-            ttk.Label(card, text=fighter_text(fighter), justify="left").pack(anchor="w")
-            ttk.Progressbar(card, style="Health.Horizontal.TProgressbar", maximum=fighter.stats.max_hp, value=fighter.hp).pack(fill="x", pady=(12, 3))
-            ttk.Progressbar(card, style="Energy.Horizontal.TProgressbar", maximum=max(1, fighter.stats.max_energy), value=fighter.energy).pack(fill="x", pady=3)
-        actions = ttk.Frame(self.container)
-        actions.pack(fill="x", pady=12)
-        for index, option in enumerate(self.controller.options()):
-            row, column = divmod(index, 4)
-            box = ttk.Frame(actions)
-            box.grid(row=row, column=column, sticky="nsew", padx=4, pady=3)
-            actions.columnconfigure(column, weight=1)
-            request = option.request(snapshot)
-            self.button(box, f"{option.name} · {option.cost} Э",
-                        partial(self.submit, request),
-                        state="normal" if option.available and not bot_turn else "disabled").pack(fill="x")
-            preview = (f"Урон {option.damage}" if option.damage else
-                       f"HP +{option.healing}" if option.healing else
-                       f"Энергия +{option.energy}" if option.energy else "")
-            ttk.Label(box, text=option.reason or preview, wraplength=220).pack(anchor="w")
-        field = self.text_panel(self.container, "\n".join(event_text(e, snapshot) for e in snapshot.events), 8)
-        field.see("end")
+            self.fighter_card(cards, fighter, fighter.id == snapshot.active_id)
         footer = ttk.Frame(self.container)
-        footer.pack(fill="x")
-        self.button(footer, "Пауза / сохранение", self.pause).pack(side="left", padx=4)
+        footer.pack(side="bottom", fill="x", pady=(12, 0))
+        self.button(footer, "Пауза / сохранение", self.pause).pack(side="left")
         self.button(footer, "Сдаться", self.surrender,
-                    state="disabled" if bot_turn else "normal").pack(side="left", padx=4)
+                    state="disabled" if bot_turn else "normal").pack(side="right")
+        lower = ttk.Frame(self.container)
+        lower.pack(fill="both", expand=True)
+        lower.columnconfigure(0, weight=3, uniform="lower")
+        lower.columnconfigure(1, weight=2, uniform="lower")
+        lower.rowconfigure(0, weight=1)
+        command_panel = ttk.Frame(lower)
+        command_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
+        ttk.Label(command_panel, text="Ваше действие", style="Heading.TLabel").pack(anchor="w", pady=(0, 12))
+        actions = ttk.Frame(command_panel)
+        actions.pack(fill="x")
+        for index, option in enumerate(self.controller.options()):
+            row, column = divmod(index, 3)
+            box = ttk.Frame(actions)
+            box.grid(row=row, column=column, sticky="nsew", padx=(0, 7), pady=(0, 9))
+            actions.columnconfigure(column, weight=1, uniform="action")
+            short_names = {"recover": "Восстановить", "health_potion": "Зелье здоровья",
+                           "energy_potion": "Зелье энергии", "poison_arrow": "Ядовитая стрела"}
+            name = short_names.get(option.item_id or option.action_id, option.name)
+            request = option.request(snapshot)
+            ttk.Button(box, text=name, style="Action.TButton",
+                       command=partial(self.submit, request),
+                       state="normal" if option.available and not bot_turn else "disabled").pack(fill="x")
+            preview = (f"Урон {option.damage}" if option.damage else
+                       f"Здоровье +{option.healing}" if option.healing else
+                       f"Энергия +{option.energy}" if option.energy else "Защитная стойка" if option.action_id == "defend" else "Снятие яда")
+            ttk.Label(box, text=option.reason or f"{option.cost} Э · {preview}", style="Muted.TLabel",
+                      font=(self.body_font, 10), wraplength=170).pack(anchor="w", pady=(3, 0))
+        journal = ttk.Frame(lower)
+        journal.grid(row=0, column=1, sticky="nsew")
+        ttk.Label(journal, text="Хроника боя", style="Heading.TLabel").pack(anchor="w")
+        field = self.text_panel(journal, "\n".join(event_text(e, snapshot) for e in snapshot.events), 6)
+        field.configure(font=(self.body_font, max(10, self.controller.settings.font_size - 1)))
+        field.see("end")
         if bot_turn and not self.controller.paused:
             self._callback = self.root.after(
                 self.controller.settings.bot_delay_ms,

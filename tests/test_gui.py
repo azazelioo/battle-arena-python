@@ -231,3 +231,21 @@ def test_gui_reports_rejected_request(window):
         window.submit(request)
         report.assert_called_once()
     assert window.controller.snapshot() == state
+
+
+@pytest.mark.gui
+def test_all_battle_controls_fit_minimum_window(window):
+    from tkinter import ttk
+    window.controller.new_match(MatchSetup(mode="pvp"))
+    window.root.geometry("1000x700")
+    window.root.deiconify()
+    window.battle()
+    window.root.update_idletasks()
+    buttons = widgets(window.container, ttk.Button)
+    footer_top = next(w for w in buttons if w.cget("text") == "Пауза / сохранение").winfo_rooty()
+    actions = [w for w in buttons if w.cget("style") == "Action.TButton"]
+    assert len(actions) == 8
+    for button in actions:
+        assert button.winfo_rooty() + button.winfo_height() <= footer_top
+        assert button.winfo_rootx() + button.winfo_width() <= window.root.winfo_rootx() + 1000
+    assert all(w.winfo_height() >= w.winfo_reqheight() for w in buttons)
