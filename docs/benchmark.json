@@ -1,0 +1,22 @@
+{
+  "python": "3.14.6",
+  "platform": "macOS-26.4-arm64-arm-64bit-Mach-O",
+  "processor": "arm",
+  "commands": 1000,
+  "event_count_range": [
+    1,
+    6
+  ],
+  "latency_ms": {
+    "median": 0.01966600029845722,
+    "p95": 0.032834002922754735,
+    "max": 0.22287499814410694
+  },
+  "under_500_ms": true,
+  "memory_100_matches": {
+    "retained_matches": 50,
+    "current_bytes": 340818,
+    "peak_bytes": 369591
+  },
+  "memory_scope": "Python allocations only; excludes Tcl/Tk and OS process memory"
+}

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "battle-arena-python"
+version = "1.0.0"
+description = "Локальная пошаговая арена с Tkinter, CLI и предикшен-ботами"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.2", "pytest-cov==6.2.1", "mypy==1.18.2"]
+
+[project.scripts]
+battle-arena = "arena.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["arena*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = ["gui: requires a working graphical display and Tcl/Tk"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["arena"]
+
+[tool.coverage.run]
+branch = true
+source = ["arena"]
+
+[tool.coverage.report]
+show_missing = true
