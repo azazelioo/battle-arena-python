@@ -1,8 +1,8 @@
 {
   "date": "2026-09-17",
   "python": "3.12.14",
-  "tests_passed": 338,
-  "gui_tests_passed": 29,
+  "tests_passed": 341,
+  "gui_tests_passed": 30,
   "type_check": "mypy strict: 24 source files; no issues",
   "totals": {
     "covered_lines": 2085,

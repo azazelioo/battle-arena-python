@@ -108,3 +108,14 @@ def test_settings_history_slot_and_missing_match_categories(tmp_path):
     with pytest.raises(StorageError) as error:
         GameController(tmp_path).save(1)
     assert error.value.code == StorageCode.NO_MATCH
+
+
+@pytest.mark.parametrize("operation", ["pathlib.Path.mkdir", "os.fsync"])
+def test_interrupted_write_keeps_original_and_cleans_up(tmp_path, operation):
+    path = tmp_path / "slot.json"
+    path.write_text('{"original": true}')
+    with patch(operation, side_effect=KeyboardInterrupt):
+        with pytest.raises(KeyboardInterrupt):
+            atomic_json(path, {"replacement": True})
+    assert json.loads(path.read_text()) == {"original": True}
+    assert list(tmp_path.iterdir()) == [path]

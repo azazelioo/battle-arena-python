@@ -1,10 +1,10 @@
 {
   "method": "token lines excluding comments and AST docstrings",
   "totals": {
-    "physical": 7494,
-    "nonempty": 6609,
+    "physical": 7528,
+    "nonempty": 6636,
     "docstring": 49,
-    "code": 6557
+    "code": 6584
   },
   "files": {
     "arena/__init__.py": {
@@ -176,16 +176,16 @@
       "code": 201
     },
     "tests/test_error_codes.py": {
-      "physical": 110,
-      "nonempty": 92,
+      "physical": 121,
+      "nonempty": 101,
       "docstring": 1,
-      "code": 91
+      "code": 100
     },
     "tests/test_gui.py": {
-      "physical": 613,
-      "nonempty": 529,
+      "physical": 636,
+      "nonempty": 547,
       "docstring": 1,
-      "code": 528
+      "code": 546
     },
     "tests/test_history_navigation.py": {
       "physical": 261,

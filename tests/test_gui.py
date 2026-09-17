@@ -611,3 +611,26 @@ def test_repeated_screen_changes_leave_no_bot_timers(window):
         assert window._callback is None
         assert not window.root.tk.call("after", "info")
     assert window.controller.snapshot() == initial
+
+
+@pytest.mark.gui
+def test_menu_art_redraws_when_window_is_mapped(window):
+    from arena.presentation.theme import ArenaArt
+
+    window.root.deiconify()
+    window.menu()
+    window.root.update()
+
+    def descendants(widget):
+        for child in widget.winfo_children():
+            yield child
+            yield from descendants(child)
+
+    art = next(
+        item for item in descendants(window.root) if isinstance(item, ArenaArt)
+    )
+    initial_count = len(art.find_all())
+    assert initial_count > 50
+    window.root.geometry("1200x900")
+    window.root.update()
+    assert len(art.find_all()) == initial_count
