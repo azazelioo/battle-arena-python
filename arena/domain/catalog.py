@@ -1,4 +1,5 @@
 """The single source of game balance; no I/O and no interface imports."""
+
 from dataclasses import dataclass
 from types import MappingProxyType
 
@@ -26,25 +27,36 @@ class ItemDefinition:
     amount: int
 
 
-CHARACTERS = MappingProxyType({
-    "warrior": CharacterDefinition(
-        "warrior", "Воин", Stats(140, 40, 18, 8, 8, 6), "heavy_strike"),
-    "mage": CharacterDefinition(
-        "mage", "Маг", Stats(95, 70, 10, 22, 3, 8), "fireball"),
-    "ranger": CharacterDefinition(
-        "ranger", "Следопыт", Stats(110, 50, 16, 12, 5, 12), "poison_arrow"),
-})
-EQUIPMENT = MappingProxyType({
-    "none": EquipmentDefinition("Без снаряжения", StatBonus()),
-    "blade": EquipmentDefinition("Учебный клинок", StatBonus(attack=3)),
-    "amulet": EquipmentDefinition("Амулет", StatBonus(max_energy=15, magic=3)),
-    "shield": EquipmentDefinition("Щит", StatBonus(armor=3)),
-})
-ITEMS = MappingProxyType({
-    "health_potion": ItemDefinition("Лечебное зелье", "hp", 40),
-    "energy_potion": ItemDefinition("Энергетическое зелье", "energy", 25),
-    "antidote": ItemDefinition("Противоядие", "poison", 0),
-})
+CHARACTERS = MappingProxyType(
+    {
+        "warrior": CharacterDefinition(
+            "warrior", "Воин", Stats(140, 40, 18, 8, 8, 6), "heavy_strike"
+        ),
+        "mage": CharacterDefinition(
+            "mage", "Маг", Stats(95, 70, 10, 22, 3, 8), "fireball"
+        ),
+        "ranger": CharacterDefinition(
+            "ranger", "Следопыт", Stats(110, 50, 16, 12, 5, 12), "poison_arrow"
+        ),
+    }
+)
+EQUIPMENT = MappingProxyType(
+    {
+        "none": EquipmentDefinition("Без снаряжения", StatBonus()),
+        "blade": EquipmentDefinition("Учебный клинок", StatBonus(attack=3)),
+        "amulet": EquipmentDefinition(
+            "Амулет", StatBonus(max_energy=15, magic=3)
+        ),
+        "shield": EquipmentDefinition("Щит", StatBonus(armor=3)),
+    }
+)
+ITEMS = MappingProxyType(
+    {
+        "health_potion": ItemDefinition("Лечебное зелье", "hp", 40),
+        "energy_potion": ItemDefinition("Энергетическое зелье", "energy", 25),
+        "antidote": ItemDefinition("Противоядие", "poison", 0),
+    }
+)
 HEAL_COST = 20
 HEAL_BASE = 25
 RECOVER_AMOUNT = 15

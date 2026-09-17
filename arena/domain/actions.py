@@ -1,4 +1,5 @@
 """Commands share one availability/preview/execute contract."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -20,18 +21,34 @@ class ActionContext:
     record: Callable[[BattleEvent], None]
     item_id: str | None = None
 
-    def emit(self, kind: str, calculated: int = 0, actual: int = 0,
-             target: Character | None = None, source_id: str | None = None,
-             remaining: int = 0) -> None:
-        self.record(BattleEvent(
-            0, self.turn, kind, source_id or self.actor.id,
-            (target or self.target).id, self.action_id,
-            calculated, actual, remaining,
-        ))
+    def emit(
+        self,
+        kind: str,
+        calculated: int = 0,
+        actual: int = 0,
+        target: Character | None = None,
+        source_id: str | None = None,
+        remaining: int = 0,
+    ) -> None:
+        self.record(
+            BattleEvent(
+                0,
+                self.turn,
+                kind,
+                source_id or self.actor.id,
+                (target or self.target).id,
+                self.action_id,
+                calculated,
+                actual,
+                remaining,
+            )
+        )
 
     def hit(self, power: int, magical: bool = False) -> None:
         calculated = direct_damage(
-            power, self.target.stats.armor, magical,
+            power,
+            self.target.stats.armor,
+            magical,
             self.target.has_effect("guard"),
         )
         for effect in self.target.effects():
@@ -61,8 +78,16 @@ class Action(ABC):
         reason = self.availability(context)
         damage, healing, energy = self.preview(context)
         return ActionOption(
-            self.id, self.name, self.cost, not reason, reason,
-            context.target.id, damage, healing, energy, context.item_id,
+            self.id,
+            self.name,
+            self.cost,
+            not reason,
+            reason,
+            context.target.id,
+            damage,
+            healing,
+            energy,
+            context.item_id,
         )
 
     @abstractmethod
@@ -82,7 +107,9 @@ class AttackAction(Action):
     @override
     def preview(self, context: ActionContext) -> tuple[int, int, int]:
         damage = direct_damage(
-            self.power(context), context.target.stats.armor, self.magical,
+            self.power(context),
+            context.target.stats.armor,
+            self.magical,
             context.target.has_effect("guard"),
         )
         return min(damage, context.target.hp), 0, 0
@@ -144,14 +171,22 @@ class HealAction(Action):
 
     @override
     def availability(self, context: ActionContext) -> str:
-        return (super().availability(context)
-                or ("Полное здоровье" if context.actor.hp ==
-                    context.actor.stats.max_hp else ""))
+        return super().availability(context) or (
+            "Полное здоровье"
+            if context.actor.hp == context.actor.stats.max_hp
+            else ""
+        )
 
     @override
     def preview(self, context: ActionContext) -> tuple[int, int, int]:
-        return (0, min(HEAL_BASE + context.actor.stats.magic // 2,
-                       context.actor.stats.max_hp - context.actor.hp), 0)
+        return (
+            0,
+            min(
+                HEAL_BASE + context.actor.stats.magic // 2,
+                context.actor.stats.max_hp - context.actor.hp,
+            ),
+            0,
+        )
 
     @override
     def execute(self, context: ActionContext) -> None:
@@ -168,14 +203,22 @@ class RecoverEnergyAction(Action):
 
     @override
     def availability(self, context: ActionContext) -> str:
-        return (super().availability(context)
-                or ("Полная энергия" if context.actor.energy ==
-                    context.actor.stats.max_energy else ""))
+        return super().availability(context) or (
+            "Полная энергия"
+            if context.actor.energy == context.actor.stats.max_energy
+            else ""
+        )
 
     @override
     def preview(self, context: ActionContext) -> tuple[int, int, int]:
-        return (0, 0, min(RECOVER_AMOUNT,
-                         context.actor.stats.max_energy - context.actor.energy))
+        return (
+            0,
+            0,
+            min(
+                RECOVER_AMOUNT,
+                context.actor.stats.max_energy - context.actor.energy,
+            ),
+        )
 
     @override
     def execute(self, context: ActionContext) -> None:
@@ -199,12 +242,19 @@ class UseItemAction(Action):
         item = ITEMS[context.item_id]
         if context.actor.inventory.quantity(context.item_id) == 0:
             return "Предмет закончился"
-        if item.resource == "hp" and context.actor.hp == context.actor.stats.max_hp:
+        if (
+            item.resource == "hp"
+            and context.actor.hp == context.actor.stats.max_hp
+        ):
             return "Полное здоровье"
-        if (item.resource == "energy" and context.actor.energy ==
-                context.actor.stats.max_energy):
+        if (
+            item.resource == "energy"
+            and context.actor.energy == context.actor.stats.max_energy
+        ):
             return "Полная энергия"
-        if item.resource == "poison" and not context.actor.has_effect("poison"):
+        if item.resource == "poison" and not context.actor.has_effect(
+            "poison"
+        ):
             return "Нет отравления"
         return ""
 
@@ -215,16 +265,28 @@ class UseItemAction(Action):
         assert context.item_id is not None
         item = ITEMS[context.item_id]
         if item.resource == "hp":
-            return (0, min(item.amount,
-                           context.actor.stats.max_hp - context.actor.hp), 0)
+            return (
+                0,
+                min(
+                    item.amount, context.actor.stats.max_hp - context.actor.hp
+                ),
+                0,
+            )
         if item.resource == "energy":
-            return (0, 0, min(item.amount,
-                             context.actor.stats.max_energy - context.actor.energy))
+            return (
+                0,
+                0,
+                min(
+                    item.amount,
+                    context.actor.stats.max_energy - context.actor.energy,
+                ),
+            )
         return (0, 0, 0)
 
     @override
     def option(self, context: ActionContext) -> ActionOption:
         from dataclasses import replace
+
         option = super().option(context)
         if context.item_id in ITEMS:
             assert context.item_id is not None
@@ -252,7 +314,13 @@ class UseItemAction(Action):
 
 def action_registry() -> dict[str, Action]:
     actions: tuple[Action, ...] = (
-        AttackAction(), DefendAction(), HealAction(), RecoverEnergyAction(),
-        HeavyStrikeAction(), FireballAction(), PoisonArrowAction(), UseItemAction(),
+        AttackAction(),
+        DefendAction(),
+        HealAction(),
+        RecoverEnergyAction(),
+        HeavyStrikeAction(),
+        FireballAction(),
+        PoisonArrowAction(),
+        UseItemAction(),
     )
     return {action.id: action for action in actions}

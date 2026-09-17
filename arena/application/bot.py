@@ -1,4 +1,5 @@
 """Deterministic strategies inspect only immutable snapshots and previews."""
+
 from abc import ABC, abstractmethod
 from typing import override
 
@@ -8,14 +9,17 @@ from arena.domain.model import ActionOption, ActionRequest, BattleSnapshot
 
 class PredictionBot(ABC):
     @abstractmethod
-    def choose_action(self, snapshot: BattleSnapshot,
-                      options: tuple[ActionOption, ...]) -> ActionRequest:
+    def choose_action(
+        self, snapshot: BattleSnapshot, options: tuple[ActionOption, ...]
+    ) -> ActionRequest:
         """Return a legal request; the engine still validates it again."""
 
     @staticmethod
     def legal(options: tuple[ActionOption, ...]) -> list[ActionOption]:
-        result = sorted((o for o in options if o.available),
-                        key=lambda o: (o.action_id, o.item_id or ""))
+        result = sorted(
+            (o for o in options if o.available),
+            key=lambda o: (o.action_id, o.item_id or ""),
+        )
         if not result:
             raise ValueError("Нет допустимых действий")
         return result
@@ -23,8 +27,9 @@ class PredictionBot(ABC):
 
 class AggressiveBot(PredictionBot):
     @override
-    def choose_action(self, snapshot: BattleSnapshot,
-                      options: tuple[ActionOption, ...]) -> ActionRequest:
+    def choose_action(
+        self, snapshot: BattleSnapshot, options: tuple[ActionOption, ...]
+    ) -> ActionRequest:
         legal = self.legal(options)
         # Stable initial sorting breaks ties, including equally lethal attacks.
         chosen = max(legal, key=lambda option: option.damage)
@@ -33,10 +38,13 @@ class AggressiveBot(PredictionBot):
 
 class CautiousBot(AggressiveBot):
     @override
-    def choose_action(self, snapshot: BattleSnapshot,
-                      options: tuple[ActionOption, ...]) -> ActionRequest:
+    def choose_action(
+        self, snapshot: BattleSnapshot, options: tuple[ActionOption, ...]
+    ) -> ActionRequest:
         legal = self.legal(options)
-        lethal = next((o for o in legal if o.damage >= snapshot.opponent.hp), None)
+        lethal = next(
+            (o for o in legal if o.damage >= snapshot.opponent.hp), None
+        )
         if lethal:
             return lethal.request(snapshot)
         actor = snapshot.active
@@ -46,16 +54,30 @@ class CautiousBot(AggressiveBot):
         if actor.hp * 100 <= actor.stats.max_hp * 35:
             healing = [o for o in legal if o.healing > 0]
             if healing:
-                chosen = max(healing, key=lambda o: (o.healing, o.action_id == "heal"))
+                chosen = max(
+                    healing, key=lambda o: (o.healing, o.action_id == "heal")
+                )
                 return chosen.request(snapshot)
             if actor.last_action_id != "defend":
-                return next(o for o in legal if o.action_id == "defend").request(snapshot)
+                return next(
+                    o for o in legal if o.action_id == "defend"
+                ).request(snapshot)
         else:
             special_id = CHARACTERS[actor.archetype].special
-            special = next((o for o in options if o.action_id == special_id), None)
-            recover = next((o for o in legal if o.action_id == "recover"), None)
-            if (special and not special.available and recover and
-                    actor.energy < special.cost <= actor.energy + recover.energy):
+            special = next(
+                (o for o in options if o.action_id == special_id), None
+            )
+            recover = next(
+                (o for o in legal if o.action_id == "recover"), None
+            )
+            if (
+                special
+                and not special.available
+                and recover
+                and actor.energy
+                < special.cost
+                <= actor.energy + recover.energy
+            ):
                 return recover.request(snapshot)
         return super().choose_action(snapshot, options)
 

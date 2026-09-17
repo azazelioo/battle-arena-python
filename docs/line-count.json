@@ -1,10 +1,10 @@
 {
   "method": "token lines excluding comments and AST docstrings",
   "totals": {
-    "physical": 4093,
-    "nonempty": 3489,
-    "docstring": 29,
-    "code": 3456
+    "physical": 7494,
+    "nonempty": 6609,
+    "docstring": 49,
+    "code": 6557
   },
   "files": {
     "arena/__init__.py": {
@@ -14,10 +14,10 @@
       "code": 1
     },
     "arena/__main__.py": {
-      "physical": 42,
-      "nonempty": 36,
+      "physical": 60,
+      "nonempty": 50,
       "docstring": 1,
-      "code": 34
+      "code": 48
     },
     "arena/application/__init__.py": {
       "physical": 0,
@@ -26,16 +26,22 @@
       "code": 0
     },
     "arena/application/bot.py": {
-      "physical": 66,
-      "nonempty": 56,
+      "physical": 88,
+      "nonempty": 77,
       "docstring": 2,
-      "code": 53
+      "code": 74
     },
     "arena/application/controller.py": {
-      "physical": 145,
-      "nonempty": 121,
+      "physical": 188,
+      "nonempty": 163,
       "docstring": 1,
-      "code": 119
+      "code": 161
+    },
+    "arena/application/history.py": {
+      "physical": 218,
+      "nonempty": 182,
+      "docstring": 9,
+      "code": 174
     },
     "arena/domain/__init__.py": {
       "physical": 0,
@@ -44,46 +50,46 @@
       "code": 0
     },
     "arena/domain/actions.py": {
-      "physical": 258,
-      "nonempty": 212,
+      "physical": 326,
+      "nonempty": 278,
       "docstring": 2,
-      "code": 210
+      "code": 276
     },
     "arena/domain/battle.py": {
-      "physical": 165,
-      "nonempty": 150,
+      "physical": 230,
+      "nonempty": 213,
       "docstring": 1,
-      "code": 148
+      "code": 211
     },
     "arena/domain/catalog.py": {
-      "physical": 62,
-      "nonempty": 49,
+      "physical": 74,
+      "nonempty": 60,
       "docstring": 1,
-      "code": 48
+      "code": 59
     },
     "arena/domain/character.py": {
-      "physical": 134,
-      "nonempty": 108,
-      "docstring": 1,
-      "code": 107
-    },
-    "arena/domain/effects.py": {
-      "physical": 76,
-      "nonempty": 56,
-      "docstring": 3,
-      "code": 53
-    },
-    "arena/domain/model.py": {
-      "physical": 201,
-      "nonempty": 155,
-      "docstring": 2,
-      "code": 153
-    },
-    "arena/domain/validation.py": {
-      "physical": 132,
+      "physical": 155,
       "nonempty": 128,
       "docstring": 1,
       "code": 127
+    },
+    "arena/domain/effects.py": {
+      "physical": 85,
+      "nonempty": 64,
+      "docstring": 3,
+      "code": 61
+    },
+    "arena/domain/model.py": {
+      "physical": 213,
+      "nonempty": 166,
+      "docstring": 2,
+      "code": 164
+    },
+    "arena/domain/validation.py": {
+      "physical": 255,
+      "nonempty": 248,
+      "docstring": 2,
+      "code": 246
     },
     "arena/infrastructure/__init__.py": {
       "physical": 0,
@@ -91,17 +97,23 @@
       "docstring": 0,
       "code": 0
     },
+    "arena/infrastructure/errors.py": {
+      "physical": 69,
+      "nonempty": 61,
+      "docstring": 2,
+      "code": 59
+    },
     "arena/infrastructure/records.py": {
-      "physical": 107,
-      "nonempty": 87,
+      "physical": 151,
+      "nonempty": 130,
       "docstring": 1,
-      "code": 86
+      "code": 129
     },
     "arena/infrastructure/storage.py": {
-      "physical": 181,
-      "nonempty": 152,
-      "docstring": 2,
-      "code": 150
+      "physical": 305,
+      "nonempty": 277,
+      "docstring": 1,
+      "code": 276
     },
     "arena/presentation/__init__.py": {
       "physical": 0,
@@ -110,79 +122,133 @@
       "code": 0
     },
     "arena/presentation/cli.py": {
-      "physical": 188,
-      "nonempty": 176,
+      "physical": 313,
+      "nonempty": 298,
       "docstring": 1,
-      "code": 175
+      "code": 297
     },
     "arena/presentation/formatting.py": {
-      "physical": 93,
+      "physical": 124,
+      "nonempty": 111,
+      "docstring": 1,
+      "code": 115
+    },
+    "arena/presentation/gui.py": {
+      "physical": 979,
+      "nonempty": 924,
+      "docstring": 1,
+      "code": 922
+    },
+    "arena/presentation/theme.py": {
+      "physical": 389,
+      "nonempty": 374,
+      "docstring": 2,
+      "code": 372
+    },
+    "arena/presentation/viewport.py": {
+      "physical": 69,
+      "nonempty": 60,
+      "docstring": 1,
+      "code": 59
+    },
+    "tests/conftest.py": {
+      "physical": 37,
+      "nonempty": 29,
+      "docstring": 0,
+      "code": 29
+    },
+    "tests/test_application.py": {
+      "physical": 315,
+      "nonempty": 273,
+      "docstring": 0,
+      "code": 272
+    },
+    "tests/test_cli_sessions.py": {
+      "physical": 173,
+      "nonempty": 138,
+      "docstring": 1,
+      "code": 136
+    },
+    "tests/test_edge_cases.py": {
+      "physical": 238,
+      "nonempty": 203,
+      "docstring": 1,
+      "code": 201
+    },
+    "tests/test_error_codes.py": {
+      "physical": 110,
+      "nonempty": 92,
+      "docstring": 1,
+      "code": 91
+    },
+    "tests/test_gui.py": {
+      "physical": 613,
+      "nonempty": 529,
+      "docstring": 1,
+      "code": 528
+    },
+    "tests/test_history_navigation.py": {
+      "physical": 261,
+      "nonempty": 228,
+      "docstring": 1,
+      "code": 227
+    },
+    "tests/test_launch_failures.py": {
+      "physical": 75,
+      "nonempty": 58,
+      "docstring": 1,
+      "code": 57
+    },
+    "tests/test_measurement_tools.py": {
+      "physical": 154,
+      "nonempty": 130,
+      "docstring": 1,
+      "code": 129
+    },
+    "tests/test_rules.py": {
+      "physical": 426,
+      "nonempty": 362,
+      "docstring": 0,
+      "code": 362
+    },
+    "tests/test_statistics_integrity.py": {
+      "physical": 91,
+      "nonempty": 76,
+      "docstring": 1,
+      "code": 75
+    },
+    "tests/test_storage.py": {
+      "physical": 320,
+      "nonempty": 283,
+      "docstring": 0,
+      "code": 282
+    },
+    "tools/benchmark.py": {
+      "physical": 90,
       "nonempty": 81,
+      "docstring": 1,
+      "code": 80
+    },
+    "tools/benchmark_gui.py": {
+      "physical": 97,
+      "nonempty": 86,
       "docstring": 1,
       "code": 85
     },
-    "arena/presentation/gui.py": {
-      "physical": 468,
-      "nonempty": 427,
+    "tools/check_acceptance.py": {
+      "physical": 77,
+      "nonempty": 68,
       "docstring": 1,
-      "code": 425
-    },
-    "arena/presentation/theme.py": {
-      "physical": 147,
-      "nonempty": 136,
-      "docstring": 2,
-      "code": 134
-    },
-    "tests/conftest.py": {
-      "physical": 26,
-      "nonempty": 18,
-      "docstring": 0,
-      "code": 18
-    },
-    "tests/test_application.py": {
-      "physical": 234,
-      "nonempty": 194,
-      "docstring": 0,
-      "code": 193
-    },
-    "tests/test_cli_sessions.py": {
-      "physical": 160,
-      "nonempty": 126,
-      "docstring": 1,
-      "code": 124
-    },
-    "tests/test_edge_cases.py": {
-      "physical": 188,
-      "nonempty": 154,
-      "docstring": 1,
-      "code": 152
-    },
-    "tests/test_gui.py": {
-      "physical": 251,
-      "nonempty": 214,
-      "docstring": 1,
-      "code": 213
-    },
-    "tests/test_rules.py": {
-      "physical": 385,
-      "nonempty": 321,
-      "docstring": 0,
-      "code": 321
-    },
-    "tests/test_storage.py": {
-      "physical": 260,
-      "nonempty": 224,
-      "docstring": 0,
-      "code": 223
-    },
-    "tools/benchmark.py": {
-      "physical": 71,
-      "nonempty": 63,
-      "docstring": 1,
-      "code": 62
+      "code": 67
     },
     "tools/count_lines.py": {
-      "physical": 50,
+      "physical": 72,
+      "nonempty": 64,
+      "docstring": 1,
+      "code": 63
+    },
+    "tools/system_info.py": {
+      "physical": 51,
       "nonempty": 43,
       "docstring": 1,
       "code": 42

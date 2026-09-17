@@ -14,3 +14,5 @@ coverage.xml
 .DS_Store
 .battle-arena/
 local-data/
+
+coverage.json

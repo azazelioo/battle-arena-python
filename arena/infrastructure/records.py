@@ -1,4 +1,5 @@
 """Persistent settings, three slots and a deduplicated history of 50 results."""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -6,9 +7,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from arena.domain.model import BattleSnapshot, History, Phase, integer
+from .errors import StorageCode
 from .storage import (
-    StorageError, array, atomic_json, document_to_snapshot, number, obj,
-    read_json, snapshot_to_document, string,
+    StorageError,
+    array,
+    atomic_json,
+    document_to_snapshot,
+    number,
+    obj,
+    read_json,
+    snapshot_to_document,
+    string,
 )
 
 
@@ -27,12 +36,19 @@ def load_settings(path: Path) -> Settings:
         return Settings()
     try:
         data = read_json(path)
-        if not isinstance(data, dict) or set(data) - {"bot_delay_ms", "font_size"}:
+        if not isinstance(data, dict) or set(data) - {
+            "bot_delay_ms",
+            "font_size",
+        }:
             raise ValueError("Неизвестная настройка")
-        return Settings(number(data.get("bot_delay_ms", 300)),
-                        number(data.get("font_size", 12)))
+        return Settings(
+            number(data.get("bot_delay_ms", 300)),
+            number(data.get("font_size", 12)),
+        )
     except (ValueError, TypeError) as error:
-        raise StorageError(f"Неверные настройки: {error}") from error
+        raise StorageError(
+            f"Неверные настройки: {error}", StorageCode.INVALID_SETTINGS, path
+        ) from error
 
 
 def save_settings(path: Path, settings: Settings) -> None:
@@ -49,7 +65,9 @@ class MatchSummary:
     def from_snapshot(cls, snapshot: BattleSnapshot) -> MatchSummary:
         if snapshot.phase != Phase.FINISHED:
             raise ValueError("В историю попадают только законченные бои")
-        return cls(snapshot.match_id, datetime.now(timezone.utc).isoformat(), snapshot)
+        return cls(
+            snapshot.match_id, datetime.now(timezone.utc).isoformat(), snapshot
+        )
 
 
 class MatchRepository:
@@ -57,7 +75,12 @@ class MatchRepository:
         self.directory = directory
 
     def slot(self, index: int) -> Path:
-        integer(index, 1, 3)
+        try:
+            integer(index, 1, 3)
+        except ValueError as error:
+            raise StorageError(
+                "Неверный номер слота", StorageCode.INVALID_SLOT
+            ) from error
         return self.directory / f"slot-{index}.json"
 
     @property
@@ -73,7 +96,10 @@ class MatchRepository:
         if not self.history_path.exists():
             return result
         try:
-            data = obj(read_json(self.history_path, maximum_bytes=32_000_000), {"schema_version", "matches"})
+            data = obj(
+                read_json(self.history_path, maximum_bytes=32_000_000),
+                {"schema_version", "matches"},
+            )
             if number(data["schema_version"]) != 1:
                 raise ValueError("Неизвестная версия истории")
             seen: set[str] = set()
@@ -82,13 +108,24 @@ class MatchRepository:
                 snapshot = document_to_snapshot(entry["document"])
                 completed_at = string(entry["completed_at"])
                 datetime.fromisoformat(completed_at)
-                if snapshot.phase != Phase.FINISHED or snapshot.match_id in seen:
-                    raise ValueError("Незаконченный или повторный матч в истории")
+                if (
+                    snapshot.phase != Phase.FINISHED
+                    or snapshot.match_id in seen
+                ):
+                    raise ValueError(
+                        "Незаконченный или повторный матч в истории"
+                    )
                 seen.add(snapshot.match_id)
-                result.append(MatchSummary(snapshot.match_id, completed_at, snapshot))
+                result.append(
+                    MatchSummary(snapshot.match_id, completed_at, snapshot)
+                )
             return result
         except (ValueError, TypeError, KeyError) as error:
-            raise StorageError(f"Неверная история: {error}") from error
+            raise StorageError(
+                f"Неверная история: {error}",
+                StorageCode.INVALID_HISTORY,
+                self.history_path,
+            ) from error
 
     def add_result(self, snapshot: BattleSnapshot) -> None:
         summary = MatchSummary.from_snapshot(snapshot)
@@ -96,12 +133,19 @@ class MatchRepository:
         if any(entry.match_id == snapshot.match_id for entry in history):
             return
         history.append(summary)
-        atomic_json(self.history_path, {
-            "schema_version": 1,
-            "matches": [{"completed_at": entry.completed_at,
-                         "document": snapshot_to_document(entry.snapshot)}
-                        for entry in history],
-        })
+        atomic_json(
+            self.history_path,
+            {
+                "schema_version": 1,
+                "matches": [
+                    {
+                        "completed_at": entry.completed_at,
+                        "document": snapshot_to_document(entry.snapshot),
+                    }
+                    for entry in history
+                ],
+            },
+        )
 
     def clear_history(self) -> None:
         atomic_json(self.history_path, {"schema_version": 1, "matches": []})

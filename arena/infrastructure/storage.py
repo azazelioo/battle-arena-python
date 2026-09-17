@@ -1,4 +1,5 @@
 """Versioned JSON, strict decoding and atomic replacement of local files."""
+
 from __future__ import annotations
 
 import json
@@ -10,18 +11,20 @@ from pathlib import Path
 from typing import Any
 
 from arena.domain.model import (
-    BattleEvent, BattleSnapshot, CharacterSnapshot, CombatStats,
-    EffectSnapshot, Phase, Stats,
+    BattleEvent,
+    BattleSnapshot,
+    CharacterSnapshot,
+    CombatStats,
+    EffectSnapshot,
+    Phase,
+    Stats,
 )
 from arena.domain.validation import validate_snapshot
+from .errors import StorageCode, StorageError as StorageError
 
 SCHEMA_VERSION = 1
 RULES_VERSION = 1
 MAX_FILE_BYTES = 2_000_000
-
-
-class StorageError(ValueError):
-    """Expected I/O or format error suitable for presentation to the user."""
 
 
 def atomic_json(path: Path, value: object) -> None:
@@ -29,17 +32,27 @@ def atomic_json(path: Path, value: object) -> None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=path.parent,
-            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
         ) as stream:
             temporary = Path(stream.name)
-            json.dump(value, stream, ensure_ascii=False, indent=2, allow_nan=False)
+            json.dump(
+                value, stream, ensure_ascii=False, indent=2, allow_nan=False
+            )
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
         temporary.replace(path)
     except (OSError, ValueError, TypeError) as error:
-        raise StorageError(f"Не удалось записать {path.name}: {error}") from error
+        raise StorageError(
+            f"Не удалось записать {path.name}: {error}",
+            StorageCode.FILE_WRITE,
+            path,
+        ) from error
     finally:
         if temporary is not None:
             try:
@@ -62,10 +75,38 @@ def read_json(path: Path, maximum_bytes: int = MAX_FILE_BYTES) -> Any:
         with path.open("r", encoding="utf-8") as stream:
             text = stream.read(maximum_bytes + 1)
         if len(text.encode("utf-8")) > maximum_bytes:
-            raise ValueError(f"Файл превышает {maximum_bytes} байт")
+            raise StorageError(
+                f"Файл превышает {maximum_bytes} байт",
+                StorageCode.FILE_TOO_LARGE,
+                path,
+            )
         return json.loads(text, object_pairs_hook=unique_object)
-    except (OSError, ValueError, UnicodeError, RecursionError) as error:
-        raise StorageError(f"Не удалось прочитать {path.name}: {error}") from error
+    except StorageError:
+        raise
+    except FileNotFoundError as error:
+        raise StorageError(
+            f"Не удалось прочитать {path.name}: {error}",
+            StorageCode.FILE_NOT_FOUND,
+            path,
+        ) from error
+    except OSError as error:
+        raise StorageError(
+            f"Не удалось прочитать {path.name}: {error}",
+            StorageCode.FILE_READ,
+            path,
+        ) from error
+    except UnicodeError as error:
+        raise StorageError(
+            f"Неверная кодировка {path.name}: {error}",
+            StorageCode.INVALID_ENCODING,
+            path,
+        ) from error
+    except (ValueError, RecursionError) as error:
+        raise StorageError(
+            f"Не удалось прочитать {path.name}: {error}",
+            StorageCode.INVALID_JSON,
+            path,
+        ) from error
 
 
 def obj(value: Any, keys: set[str]) -> dict[str, Any]:
@@ -93,12 +134,30 @@ def array(value: Any, maximum: int = 2000) -> list[Any]:
 
 
 def decode_fighter(value: Any) -> CharacterSnapshot:
-    data = obj(value, {
-        "id", "name", "archetype", "equipment", "stats", "hp", "energy",
-        "inventory", "effects", "last_action_id", "totals",
-    })
-    stats = obj(data["stats"], {"max_hp", "max_energy", "attack", "magic", "armor", "speed"})
-    totals = obj(data["totals"], {"direct_damage", "poison_damage", "healing", "items_used"})
+    data = obj(
+        value,
+        {
+            "id",
+            "name",
+            "archetype",
+            "equipment",
+            "stats",
+            "hp",
+            "energy",
+            "inventory",
+            "effects",
+            "last_action_id",
+            "totals",
+        },
+    )
+    stats = obj(
+        data["stats"],
+        {"max_hp", "max_energy", "attack", "magic", "armor", "speed"},
+    )
+    totals = obj(
+        data["totals"],
+        {"direct_damage", "poison_damage", "healing", "items_used"},
+    )
     inventory: list[tuple[str, int]] = []
     for pair in array(data["inventory"], 3):
         pair = array(pair, 2)
@@ -108,21 +167,35 @@ def decode_fighter(value: Any) -> CharacterSnapshot:
     effects: list[EffectSnapshot] = []
     for effect in array(data["effects"], 2):
         effect = obj(effect, {"effect_id", "source_id", "remaining"})
-        effects.append(EffectSnapshot(string(effect["effect_id"]),
-                                      string(effect["source_id"]),
-                                      number(effect["remaining"])))
+        effects.append(
+            EffectSnapshot(
+                string(effect["effect_id"]),
+                string(effect["source_id"]),
+                number(effect["remaining"]),
+            )
+        )
     return CharacterSnapshot(
-        string(data["id"]), string(data["name"], 24),
-        string(data["archetype"]), string(data["equipment"]),
+        string(data["id"]),
+        string(data["name"], 24),
+        string(data["archetype"]),
+        string(data["equipment"]),
         Stats(**{key: number(value) for key, value in stats.items()}),
-        number(data["hp"]), number(data["energy"]), tuple(inventory),
-        tuple(effects), string(data["last_action_id"]),
+        number(data["hp"]),
+        number(data["energy"]),
+        tuple(inventory),
+        tuple(effects),
+        string(data["last_action_id"]),
         CombatStats(**{key: number(value) for key, value in totals.items()}),
     )
 
 
 def snapshot_to_document(snapshot: BattleSnapshot) -> dict[str, Any]:
-    validate_snapshot(snapshot)
+    try:
+        validate_snapshot(snapshot)
+    except (ValueError, KeyError) as error:
+        raise StorageError(
+            f"Некорректное состояние боя: {error}", StorageCode.INVALID_SCHEMA
+        ) from error
     return {
         "schema_version": SCHEMA_VERSION,
         "rules_version": RULES_VERSION,
@@ -133,44 +206,95 @@ def snapshot_to_document(snapshot: BattleSnapshot) -> dict[str, Any]:
 
 def document_to_snapshot(document: Any) -> BattleSnapshot:
     try:
-        doc = obj(document, {"schema_version", "rules_version", "saved_at", "battle"})
-        if (number(doc["schema_version"]) != SCHEMA_VERSION or
-                number(doc["rules_version"]) != RULES_VERSION):
-            raise ValueError("Неподдерживаемая версия сохранения")
+        doc = obj(
+            document, {"schema_version", "rules_version", "saved_at", "battle"}
+        )
+        if (
+            number(doc["schema_version"]) != SCHEMA_VERSION
+            or number(doc["rules_version"]) != RULES_VERSION
+        ):
+            raise StorageError(
+                "Неподдерживаемая версия сохранения",
+                StorageCode.UNSUPPORTED_VERSION,
+            )
         datetime.fromisoformat(string(doc["saved_at"]))
-        data = obj(doc["battle"], {
-            "match_id", "mode", "strategy", "phase", "active_id", "turn",
-            "successful_actions", "fighters", "events", "next_event",
-            "winner_id", "finish_reason",
-        })
+        data = obj(
+            doc["battle"],
+            {
+                "match_id",
+                "mode",
+                "strategy",
+                "phase",
+                "active_id",
+                "turn",
+                "successful_actions",
+                "fighters",
+                "events",
+                "next_event",
+                "winner_id",
+                "finish_reason",
+            },
+        )
         fighters = [decode_fighter(f) for f in array(data["fighters"], 2)]
         if len(fighters) != 2:
             raise ValueError("Нужны два участника")
         events: list[BattleEvent] = []
         for event in array(data["events"]):
-            event = obj(event, {
-                "number", "turn", "kind", "actor_id", "target_id", "action_id",
-                "calculated", "actual", "remaining",
-            })
-            events.append(BattleEvent(
-                number(event["number"]), number(event["turn"]),
-                string(event["kind"]), string(event["actor_id"]),
-                string(event["target_id"]), string(event["action_id"]),
-                number(event["calculated"]), number(event["actual"]),
-                number(event["remaining"]),
-            ))
+            event = obj(
+                event,
+                {
+                    "number",
+                    "turn",
+                    "kind",
+                    "actor_id",
+                    "target_id",
+                    "action_id",
+                    "calculated",
+                    "actual",
+                    "remaining",
+                },
+            )
+            events.append(
+                BattleEvent(
+                    number(event["number"]),
+                    number(event["turn"]),
+                    string(event["kind"]),
+                    string(event["actor_id"]),
+                    string(event["target_id"]),
+                    string(event["action_id"]),
+                    number(event["calculated"]),
+                    number(event["actual"]),
+                    number(event["remaining"]),
+                )
+            )
         snapshot = BattleSnapshot(
-            string(data["match_id"]), string(data["mode"]), string(data["strategy"]),
-            Phase(string(data["phase"])), string(data["active_id"]),
-            number(data["turn"]), number(data["successful_actions"]),
-            (fighters[0], fighters[1]), tuple(events), number(data["next_event"]),
+            string(data["match_id"]),
+            string(data["mode"]),
+            string(data["strategy"]),
+            Phase(string(data["phase"])),
+            string(data["active_id"]),
+            number(data["turn"]),
+            number(data["successful_actions"]),
+            (fighters[0], fighters[1]),
+            tuple(events),
+            number(data["next_event"]),
             None if data["winner_id"] is None else string(data["winner_id"]),
             string(data["finish_reason"]),
         )
         validate_snapshot(snapshot)
         return snapshot
-    except (ValueError, TypeError, KeyError, OverflowError, RecursionError) as error:
-        raise StorageError(f"Повреждённое сохранение: {error}") from error
+    except StorageError:
+        raise
+    except (
+        ValueError,
+        TypeError,
+        KeyError,
+        OverflowError,
+        RecursionError,
+    ) as error:
+        raise StorageError(
+            f"Повреждённое сохранение: {error}", StorageCode.INVALID_SCHEMA
+        ) from error
 
 
 def save_match(path: Path, snapshot: BattleSnapshot) -> None:

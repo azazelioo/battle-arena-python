@@ -1,4 +1,5 @@
 """Scripted user journeys test adapters, prompts and recovery without a terminal."""
+
 from unittest.mock import patch
 
 import pytest
@@ -40,7 +41,9 @@ def test_pause_load_restores_state_and_save_failure_keeps_pause(tmp_path):
     controller = GameController(tmp_path)
     original = controller.new_match(MatchSetup(mode="pvp"))
     controller.save(1)
-    controller.submit(next(o for o in controller.options() if o.available).request(original))
+    controller.submit(
+        next(o for o in controller.options() if o.available).request(original)
+    )
     console, messages = session(controller, ["3", "2", "3", "1"])
     assert console.pause_menu()
     assert controller.snapshot() == original
@@ -52,7 +55,9 @@ def test_pause_save_error_is_reported(tmp_path):
     controller = GameController(tmp_path)
     controller.new_match(MatchSetup(mode="pvp"))
     console, messages = session(controller, ["2", "1", "4"])
-    with patch.object(controller, "save", side_effect=StorageError("readonly")):
+    with patch.object(
+        controller, "save", side_effect=StorageError("readonly")
+    ):
         assert not console.pause_menu()
     assert "readonly" in messages
     assert controller.paused
@@ -107,15 +112,19 @@ def test_result_rematch_warning_and_return_to_menu(tmp_path):
     controller = GameController(tmp_path)
     controller.new_match(MatchSetup(mode="pvp"))
     console, messages = session(controller, ["q", "да", "2", "p", "4"])
-    with patch.object(controller.repository, "add_result", side_effect=StorageError("disk")):
+    with patch.object(
+        controller.repository, "add_result", side_effect=StorageError("disk")
+    ):
         console.battle()
     assert controller.snapshot().phase == Phase.WAITING_ACTION
     assert controller.snapshot().successful_actions == 0
     assert any("история не записана" in line for line in messages)
 
 
-@pytest.mark.parametrize("exit_inputs,saved", [(["1", "2"], True), (["2"], False),
-                                                 (["3", "7", "2"], False)])
+@pytest.mark.parametrize(
+    "exit_inputs,saved",
+    [(["1", "2"], True), (["2"], False), (["3", "7", "2"], False)],
+)
 def test_exit_save_discard_cancel(tmp_path, exit_inputs, saved):
     controller = GameController(tmp_path)
     controller.new_match(MatchSetup(mode="pvp"))
@@ -128,7 +137,9 @@ def test_continue_and_load_from_main_menu(tmp_path):
     controller = GameController(tmp_path)
     before = controller.new_match(MatchSetup(mode="pvp"))
     controller.save(1)
-    console, _ = session(controller, ["2", "p", "4", "3", "1", "p", "4", "7", "2"])
+    console, _ = session(
+        controller, ["2", "p", "4", "3", "1", "p", "4", "7", "2"]
+    )
     assert console.run() == 0
     assert controller.snapshot() == before
 
@@ -136,7 +147,9 @@ def test_continue_and_load_from_main_menu(tmp_path):
 def test_main_cli_uses_custom_data_dir(tmp_path):
     with patch("builtins.input", return_value="7"):
         # Console's injected defaults are bound at import, so patch its run boundary.
-        with patch("arena.presentation.cli.Console.run", return_value=0) as run:
+        with patch(
+            "arena.presentation.cli.Console.run", return_value=0
+        ) as run:
             assert main(["--cli", "--data-dir", str(tmp_path)]) == 0
             run.assert_called_once()
 

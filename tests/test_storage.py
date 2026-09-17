@@ -10,17 +10,28 @@ from arena.application.controller import GameController, MatchSetup
 from arena.domain.battle import BattleEngine
 from arena.domain.character import Character
 from arena.domain.model import Phase
-from arena.infrastructure.records import MatchRepository, Settings, load_settings, save_settings
+from arena.infrastructure.records import (
+    MatchRepository,
+    Settings,
+    load_settings,
+    save_settings,
+)
 from arena.infrastructure.storage import (
-    StorageError, atomic_json, document_to_snapshot, load_match, read_json,
-    save_match, snapshot_to_document,
+    StorageError,
+    atomic_json,
+    document_to_snapshot,
+    load_match,
+    read_json,
+    save_match,
+    snapshot_to_document,
 )
 from conftest import act, surrender
 
 
 def test_poison_save_does_not_tick_again(tmp_path):
-    engine = BattleEngine(Character("p1", "R", "ranger"),
-                          Character("p2", "M", "mage"))
+    engine = BattleEngine(
+        Character("p1", "R", "ranger"), Character("p2", "M", "mage")
+    )
     act(engine, "poison_arrow")
     original = engine.snapshot()
     assert original.active.hp == 71
@@ -29,14 +40,25 @@ def test_poison_save_does_not_tick_again(tmp_path):
     restored = BattleEngine.from_snapshot(load_match(path))
     assert restored.snapshot() == original
     assert restored.snapshot().active.hp == 71
-    for command, item in (("use_item", "antidote"), ("attack", None),
-                          ("heal", None), ("poison_arrow", None)):
+    for command, item in (
+        ("use_item", "antidote"),
+        ("attack", None),
+        ("heal", None),
+        ("poison_arrow", None),
+    ):
         assert act(engine, command, item) == act(restored, command, item)
         assert restored.snapshot() == engine.snapshot()
 
 
 def test_reference_six_turn_roundtrip(battle, tmp_path):
-    for action in ("fireball", "defend", "attack", "heavy_strike", "heal", "attack"):
+    for action in (
+        "fireball",
+        "defend",
+        "attack",
+        "heavy_strike",
+        "heal",
+        "attack",
+    ):
         act(battle, action)
     save_match(tmp_path / "slot.json", battle.snapshot())
     restored = BattleEngine.from_snapshot(load_match(tmp_path / "slot.json"))
@@ -47,53 +69,64 @@ def test_reference_six_turn_roundtrip(battle, tmp_path):
 def test_continuous_and_saved_match_have_identical_outcome(battle, tmp_path):
     for _ in range(3):
         s = battle.snapshot()
-        battle.submit(AggressiveBot().choose_action(s, battle.action_options(s.active_id)))
+        battle.submit(
+            AggressiveBot().choose_action(
+                s, battle.action_options(s.active_id)
+            )
+        )
     save_match(tmp_path / "slot.json", battle.snapshot())
     resumed = BattleEngine.from_snapshot(load_match(tmp_path / "slot.json"))
     while battle.snapshot().phase != Phase.FINISHED:
         s = battle.snapshot()
-        request = AggressiveBot().choose_action(s, battle.action_options(s.active_id))
+        request = AggressiveBot().choose_action(
+            s, battle.action_options(s.active_id)
+        )
         assert battle.submit(request) == resumed.submit(request)
     assert battle.snapshot() == resumed.snapshot()
 
 
-@pytest.mark.parametrize("path,value", [
-    (("schema_version",), 2), (("rules_version",), True),
-    (("saved_at",), "not-a-date"),
-    (("battle", "phase"), "RESOLVING"),
-    (("battle", "mode"), "online"),
-    (("battle", "strategy"), "random"),
-    (("battle", "active_id"), "alien"),
-    (("battle", "active_id"), "p1"),
-    (("battle", "turn"), 0), (("battle", "turn"), True),
-    (("battle", "successful_actions"), 100),
-    (("battle", "next_event"), 42),
-    (("battle", "winner_id"), "p1"),
-    (("battle", "finish_reason"), "limit"),
-    (("battle", "fighters", 0, "id"), "p2"),
-    (("battle", "fighters", 0, "name"), ""),
-    (("battle", "fighters", 0, "name"), " A "),
-    (("battle", "fighters", 0, "archetype"), "alien"),
-    (("battle", "fighters", 0, "equipment"), "alien"),
-    (("battle", "fighters", 0, "hp"), -1),
-    (("battle", "fighters", 0, "hp"), 0),
-    (("battle", "fighters", 0, "hp"), 141),
-    (("battle", "fighters", 0, "hp"), True),
-    (("battle", "fighters", 0, "energy"), 41),
-    (("battle", "fighters", 0, "energy"), 1.5),
-    (("battle", "fighters", 0, "stats", "attack"), 99),
-    (("battle", "fighters", 0, "inventory", 0, 1), -1),
-    (("battle", "fighters", 0, "inventory", 0, 1), True),
-    (("battle", "fighters", 0, "inventory", 0, 0), "alien"),
-    (("battle", "fighters", 0, "last_action_id"), "fireball"),
-    (("battle", "fighters", 0, "totals", "healing"), -1),
-    (("battle", "events", 0, "number"), 4),
-    (("battle", "events", 0, "turn"), 9),
-    (("battle", "events", 0, "actor_id"), "alien"),
-    (("battle", "events", 0, "target_id"), "alien"),
-    (("battle", "events", 0, "kind"), "alien"),
-    (("battle", "events", 0, "actual"), 99),
-])
+@pytest.mark.parametrize(
+    "path,value",
+    [
+        (("schema_version",), 2),
+        (("rules_version",), True),
+        (("saved_at",), "not-a-date"),
+        (("battle", "phase"), "RESOLVING"),
+        (("battle", "mode"), "online"),
+        (("battle", "strategy"), "random"),
+        (("battle", "active_id"), "alien"),
+        (("battle", "active_id"), "p1"),
+        (("battle", "turn"), 0),
+        (("battle", "turn"), True),
+        (("battle", "successful_actions"), 100),
+        (("battle", "next_event"), 42),
+        (("battle", "winner_id"), "p1"),
+        (("battle", "finish_reason"), "limit"),
+        (("battle", "fighters", 0, "id"), "p2"),
+        (("battle", "fighters", 0, "name"), ""),
+        (("battle", "fighters", 0, "name"), " A "),
+        (("battle", "fighters", 0, "archetype"), "alien"),
+        (("battle", "fighters", 0, "equipment"), "alien"),
+        (("battle", "fighters", 0, "hp"), -1),
+        (("battle", "fighters", 0, "hp"), 0),
+        (("battle", "fighters", 0, "hp"), 141),
+        (("battle", "fighters", 0, "hp"), True),
+        (("battle", "fighters", 0, "energy"), 41),
+        (("battle", "fighters", 0, "energy"), 1.5),
+        (("battle", "fighters", 0, "stats", "attack"), 99),
+        (("battle", "fighters", 0, "inventory", 0, 1), -1),
+        (("battle", "fighters", 0, "inventory", 0, 1), True),
+        (("battle", "fighters", 0, "inventory", 0, 0), "alien"),
+        (("battle", "fighters", 0, "last_action_id"), "fireball"),
+        (("battle", "fighters", 0, "totals", "healing"), -1),
+        (("battle", "events", 0, "number"), 4),
+        (("battle", "events", 0, "turn"), 9),
+        (("battle", "events", 0, "actor_id"), "alien"),
+        (("battle", "events", 0, "target_id"), "alien"),
+        (("battle", "events", 0, "kind"), "alien"),
+        (("battle", "events", 0, "actual"), 99),
+    ],
+)
 def test_corrupt_save_rejected(battle, path, value):
     # JSON round trip intentionally converts tuples to lists like real files.
     document = json.loads(json.dumps(snapshot_to_document(battle.snapshot())))
@@ -105,8 +138,10 @@ def test_corrupt_save_rejected(battle, path, value):
         document_to_snapshot(document)
 
 
-@pytest.mark.parametrize("text", ["{", "[]", "null", '{"a":1,"a":2}',
-                                  '{"schema_version":NaN}', '"text"'])
+@pytest.mark.parametrize(
+    "text",
+    ["{", "[]", "null", '{"a":1,"a":2}', '{"schema_version":NaN}', '"text"'],
+)
 def test_bad_json(tmp_path, text):
     path = tmp_path / "save.json"
     path.write_text(text)
@@ -178,8 +213,11 @@ def test_history_deduplication_and_finished_load(tmp_path, battle):
 def test_history_retains_only_last_50(tmp_path):
     repository = MatchRepository(tmp_path)
     for index in range(53):
-        engine = BattleEngine(Character("p1", "A", "mage"),
-                              Character("p2", "B", "warrior"), match_id=f"m{index}")
+        engine = BattleEngine(
+            Character("p1", "A", "mage"),
+            Character("p2", "B", "warrior"),
+            match_id=f"m{index}",
+        )
         surrender(engine)
         repository.add_result(engine.snapshot())
     history = repository.history()
@@ -194,9 +232,17 @@ def test_history_write_error_keeps_result_usable(tmp_path):
     controller = GameController(tmp_path)
     s = controller.new_match(MatchSetup(mode="pvp"))
     from arena.domain.model import ActionRequest
-    with patch.object(controller.repository, "add_result", side_effect=StorageError("disk error")):
-        result = controller.submit(ActionRequest(s.match_id, s.turn, s.active_id,
-                                                  "surrender", s.active_id))
+
+    with patch.object(
+        controller.repository,
+        "add_result",
+        side_effect=StorageError("disk error"),
+    ):
+        result = controller.submit(
+            ActionRequest(
+                s.match_id, s.turn, s.active_id, "surrender", s.active_id
+            )
+        )
     assert result.accepted
     assert controller.snapshot().phase == Phase.FINISHED
     assert "история не записана" in controller.warning
@@ -220,8 +266,17 @@ def test_settings_defaults_and_roundtrip(tmp_path):
     assert load_settings(path) == Settings(300, 14)
 
 
-@pytest.mark.parametrize("data", [[], {"alien": 1}, {"bot_delay_ms": -1},
-    {"font_size": 21}, {"font_size": True}, {"bot_delay_ms": "300"}])
+@pytest.mark.parametrize(
+    "data",
+    [
+        [],
+        {"alien": 1},
+        {"bot_delay_ms": -1},
+        {"font_size": 21},
+        {"font_size": True},
+        {"bot_delay_ms": "300"},
+    ],
+)
 def test_invalid_settings_reported(tmp_path, data):
     path = tmp_path / "settings.json"
     atomic_json(path, data)
@@ -257,4 +312,9 @@ def test_all_finished_states_roundtrip(tmp_path, finish):
     s = engine.snapshot()
     assert s.finish_reason == finish
     save_match(tmp_path / "save.json", s)
-    assert BattleEngine.from_snapshot(load_match(tmp_path / "save.json")).snapshot() == s
+    assert (
+        BattleEngine.from_snapshot(
+            load_match(tmp_path / "save.json")
+        ).snapshot()
+        == s
+    )

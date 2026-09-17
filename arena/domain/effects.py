@@ -1,4 +1,5 @@
 """Polymorphic effect hooks. The engine controls when each hook runs."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -60,17 +61,25 @@ class PoisonEffect(StatusEffect):
         actual = context.actor.take_damage(POISON_DAMAGE)
         context.target.credit(poison_damage=actual)
         self.remaining -= 1
-        context.emit("poison", calculated=POISON_DAMAGE, actual=actual,
-                     target=context.actor, source_id=self.source_id,
-                     remaining=self.remaining)
+        context.emit(
+            "poison",
+            calculated=POISON_DAMAGE,
+            actual=actual,
+            target=context.actor,
+            source_id=self.source_id,
+            remaining=self.remaining,
+        )
         if self.remaining == 0:
             context.actor.remove_effect(self.id)
 
 
 def effect_from_snapshot(snapshot: EffectSnapshot) -> StatusEffect:
     factories: dict[str, type[StatusEffect]] = {
-        "guard": GuardEffect, "poison": PoisonEffect,
+        "guard": GuardEffect,
+        "poison": PoisonEffect,
     }
     if snapshot.effect_id not in factories:
         raise ValueError("Неизвестный эффект")
-    return factories[snapshot.effect_id](snapshot.source_id, snapshot.remaining)
+    return factories[snapshot.effect_id](
+        snapshot.source_id, snapshot.remaining
+    )

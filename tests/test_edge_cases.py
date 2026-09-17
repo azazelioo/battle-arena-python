@@ -1,4 +1,5 @@
 """Contract, restoration and error-path checks that complement reference games."""
+
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -12,9 +13,17 @@ from arena.domain.battle import BattleEngine
 from arena.domain.character import Character
 from arena.domain.effects import effect_from_snapshot
 from arena.domain.model import ActionRequest, EffectSnapshot, Phase
-from arena.infrastructure.records import MatchRepository, MatchSummary, Settings
+from arena.infrastructure.records import (
+    MatchRepository,
+    MatchSummary,
+    Settings,
+)
 from arena.infrastructure.storage import (
-    StorageError, atomic_json, document_to_snapshot, read_json, snapshot_to_document,
+    StorageError,
+    atomic_json,
+    document_to_snapshot,
+    read_json,
+    snapshot_to_document,
 )
 from conftest import act, surrender
 
@@ -41,11 +50,17 @@ def test_actions_reject_dead_actor_and_unknown_item():
     assert UseItemAction().availability(context) == "Предмет закончился"
 
 
-@pytest.mark.parametrize("mode,strategy", [("online", "aggressive"), ("pvp", "random")])
+@pytest.mark.parametrize(
+    "mode,strategy", [("online", "aggressive"), ("pvp", "random")]
+)
 def test_engine_invalid_modes(mode, strategy):
     with pytest.raises(ValueError):
-        BattleEngine(Character("p1", "A", "mage"), Character("p2", "B", "mage"),
-                     mode, strategy)
+        BattleEngine(
+            Character("p1", "A", "mage"),
+            Character("p2", "B", "mage"),
+            mode,
+            strategy,
+        )
 
 
 def test_engine_rejects_duplicate_or_dead_fighters():
@@ -61,8 +76,13 @@ def test_engine_rejects_duplicate_or_dead_fighters():
 
 def test_bad_surrender_target_rejected(battle):
     before = battle.snapshot()
-    request = ActionRequest(before.match_id, before.turn, before.active_id,
-                            "surrender", before.opponent.id)
+    request = ActionRequest(
+        before.match_id,
+        before.turn,
+        before.active_id,
+        "surrender",
+        before.opponent.id,
+    )
     assert battle.submit(request).code == "wrong_target"
     assert battle.snapshot() == before
 
@@ -76,15 +96,18 @@ def test_character_snapshot_wrong_stats_rejected():
         effect_from_snapshot(EffectSnapshot("alien", "p1", 1))
 
 
-@pytest.mark.parametrize("effect", [
-    {"effect_id": "alien", "source_id": "p2", "remaining": 1},
-    {"effect_id": "poison", "source_id": "alien", "remaining": 1},
-    {"effect_id": "poison", "source_id": "p1", "remaining": 1},
-    {"effect_id": "poison", "source_id": "p2", "remaining": 0},
-    {"effect_id": "poison", "source_id": "p2", "remaining": 3},
-    {"effect_id": "guard", "source_id": "p2", "remaining": 1},
-    {"effect_id": "guard", "source_id": "p1", "remaining": 2},
-])
+@pytest.mark.parametrize(
+    "effect",
+    [
+        {"effect_id": "alien", "source_id": "p2", "remaining": 1},
+        {"effect_id": "poison", "source_id": "alien", "remaining": 1},
+        {"effect_id": "poison", "source_id": "p1", "remaining": 1},
+        {"effect_id": "poison", "source_id": "p2", "remaining": 0},
+        {"effect_id": "poison", "source_id": "p2", "remaining": 3},
+        {"effect_id": "guard", "source_id": "p2", "remaining": 1},
+        {"effect_id": "guard", "source_id": "p1", "remaining": 2},
+    ],
+)
 def test_effect_corruption(battle, effect):
     data = document(battle)
     data["battle"]["fighters"][0]["effects"] = [effect]
@@ -100,9 +123,17 @@ def test_duplicate_effects_rejected(battle):
         document_to_snapshot(data)
 
 
-@pytest.mark.parametrize("field,value", [("fighters", []), ("fighters", {}),
-                                        ("events", {}), ("events", []),
-                                        ("match_id", None), ("turn", "1")])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("fighters", []),
+        ("fighters", {}),
+        ("events", {}),
+        ("events", []),
+        ("match_id", None),
+        ("turn", "1"),
+    ],
+)
 def test_wrong_structures_rejected(battle, field, value):
     data = document(battle)
     data["battle"][field] = value
@@ -145,13 +176,24 @@ def test_history_rejects_unfinished_version_and_duplicates(tmp_path, battle):
     atomic_json(repository.history_path, {"schema_version": 2, "matches": []})
     with pytest.raises(StorageError):
         repository.history()
-    unfinished = {"completed_at": "2026-09-16T00:00:00+00:00", "document": document(battle)}
-    atomic_json(repository.history_path, {"schema_version": 1, "matches": [unfinished]})
+    unfinished = {
+        "completed_at": "2026-09-16T00:00:00+00:00",
+        "document": document(battle),
+    }
+    atomic_json(
+        repository.history_path, {"schema_version": 1, "matches": [unfinished]}
+    )
     with pytest.raises(StorageError):
         repository.history()
     surrender(battle)
-    finished = {"completed_at": "2026-09-16T00:00:00+00:00", "document": document(battle)}
-    atomic_json(repository.history_path, {"schema_version": 1, "matches": [finished, finished]})
+    finished = {
+        "completed_at": "2026-09-16T00:00:00+00:00",
+        "document": document(battle),
+    }
+    atomic_json(
+        repository.history_path,
+        {"schema_version": 1, "matches": [finished, finished]},
+    )
     with pytest.raises(StorageError):
         repository.history()
 
@@ -164,10 +206,16 @@ def test_large_history_limit_is_separate_from_slot_limit(tmp_path, battle):
     entries = []
     for index in range(50):
         state = replace(base, match_id=f"long-{index}")
-        entries.append({"completed_at": "2026-09-16T00:00:00+00:00",
-                        "document": snapshot_to_document(state)})
+        entries.append(
+            {
+                "completed_at": "2026-09-16T00:00:00+00:00",
+                "document": snapshot_to_document(state),
+            }
+        )
     repository = MatchRepository(tmp_path)
-    atomic_json(repository.history_path, {"schema_version": 1, "matches": entries})
+    atomic_json(
+        repository.history_path, {"schema_version": 1, "matches": entries}
+    )
     assert repository.history_path.stat().st_size > 2_000_000
     assert len(repository.history()) == 50
 
@@ -183,6 +231,8 @@ def test_settings_update_success(tmp_path):
 def test_cleanup_failure_does_not_hide_original_error(tmp_path):
     path = tmp_path / "save.json"
     with patch("pathlib.Path.replace", side_effect=OSError("original error")):
-        with patch("pathlib.Path.unlink", side_effect=OSError("cleanup error")):
+        with patch(
+            "pathlib.Path.unlink", side_effect=OSError("cleanup error")
+        ):
             with pytest.raises(StorageError, match="original error"):
                 atomic_json(path, {})

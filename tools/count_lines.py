@@ -1,4 +1,5 @@
 """Count physical/nonempty/token code lines, excluding actual docstrings."""
+
 from __future__ import annotations
 
 import ast
@@ -14,15 +15,31 @@ def count_file(path: Path) -> dict[str, int]:
     tree = ast.parse(source)
     doc_lines: set[int] = set()
     for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+        if isinstance(
+            node,
+            (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef),
+        ):
             if node.body and isinstance(node.body[0], ast.Expr):
                 expression = node.body[0]
-                if isinstance(expression.value, ast.Constant) and isinstance(expression.value.value, str):
-                    doc_lines.update(range(expression.lineno, (expression.end_lineno or expression.lineno) + 1))
+                if isinstance(expression.value, ast.Constant) and isinstance(
+                    expression.value.value, str
+                ):
+                    doc_lines.update(
+                        range(
+                            expression.lineno,
+                            (expression.end_lineno or expression.lineno) + 1,
+                        )
+                    )
     code_lines: set[int] = set()
     for token in tokenize.generate_tokens(io.StringIO(source).readline):
-        if token.type not in (tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE,
-                              tokenize.INDENT, tokenize.DEDENT, tokenize.ENDMARKER):
+        if token.type not in (
+            tokenize.COMMENT,
+            tokenize.NL,
+            tokenize.NEWLINE,
+            tokenize.INDENT,
+            tokenize.DEDENT,
+            tokenize.ENDMARKER,
+        ):
             token_lines = set(range(token.start[0], token.end[0] + 1))
             if not token_lines <= doc_lines:
                 code_lines.update(token_lines)
@@ -40,10 +57,15 @@ def report(root: Path) -> dict[str, object]:
         for folder in ("arena", "tests", "tools")
         for path in sorted((root / folder).rglob("*.py"))
     }
-    totals = {key: sum(value[key] for value in files.values())
-              for key in ("physical", "nonempty", "docstring", "code")}
-    return {"method": "token lines excluding comments and AST docstrings",
-            "totals": totals, "files": files}
+    totals = {
+        key: sum(value[key] for value in files.values())
+        for key in ("physical", "nonempty", "docstring", "code")
+    }
+    return {
+        "method": "token lines excluding comments and AST docstrings",
+        "totals": totals,
+        "files": files,
+    }
 
 
 if __name__ == "__main__":

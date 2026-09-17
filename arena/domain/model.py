@@ -1,4 +1,5 @@
 """Value objects shared by the engine, persistence and both interfaces."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
@@ -38,13 +39,18 @@ class Stats:
 
     def __post_init__(self) -> None:
         for field in fields(self):
-            integer(getattr(self, field.name), 1 if field.name == "max_hp" else 0)
+            integer(
+                getattr(self, field.name), 1 if field.name == "max_hp" else 0
+            )
 
     def __add__(self, bonus: StatBonus) -> Stats:
-        return Stats(**{
-            field.name: getattr(self, field.name) + getattr(bonus, field.name)
-            for field in fields(self)
-        })
+        return Stats(
+            **{
+                field.name: getattr(self, field.name)
+                + getattr(bonus, field.name)
+                for field in fields(self)
+            }
+        )
 
 
 class Phase(StrEnum):
@@ -86,7 +92,9 @@ class CharacterSnapshot:
         return dict(self.inventory).get(item_id, 0)
 
     def effect(self, effect_id: str) -> EffectSnapshot | None:
-        return next((e for e in self.effects if e.effect_id == effect_id), None)
+        return next(
+            (e for e in self.effects if e.effect_id == effect_id), None
+        )
 
 
 @dataclass(frozen=True)
@@ -158,8 +166,12 @@ class ActionOption:
 
     def request(self, snapshot: BattleSnapshot) -> ActionRequest:
         return ActionRequest(
-            snapshot.match_id, snapshot.turn, snapshot.active_id,
-            self.action_id, self.target_id, self.item_id,
+            snapshot.match_id,
+            snapshot.turn,
+            snapshot.active_id,
+            self.action_id,
+            self.target_id,
+            self.item_id,
         )
 
 
@@ -183,7 +195,7 @@ class History(Generic[T]):
 
     def append(self, entry: T) -> None:
         self._entries.append(entry)
-        self._entries = self._entries[-self._capacity:]
+        self._entries = self._entries[-self._capacity :]
 
     def __len__(self) -> int:
         return len(self._entries)

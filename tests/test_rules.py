@@ -2,7 +2,12 @@ from dataclasses import FrozenInstanceError, replace
 
 import pytest
 
-from arena.domain.actions import ActionContext, AttackAction, HealAction, action_registry
+from arena.domain.actions import (
+    ActionContext,
+    AttackAction,
+    HealAction,
+    action_registry,
+)
 from arena.domain.battle import BattleEngine
 from arena.domain.catalog import CHARACTERS, EQUIPMENT, final_stats
 from arena.domain.character import Character, Inventory
@@ -12,7 +17,14 @@ from conftest import act, surrender
 
 
 def test_six_turn_reference_example(battle):
-    for action in ("fireball", "defend", "attack", "heavy_strike", "heal", "attack"):
+    for action in (
+        "fireball",
+        "defend",
+        "attack",
+        "heavy_strike",
+        "heal",
+        "attack",
+    ):
         assert act(battle, action).accepted
     s = battle.snapshot()
     warrior, mage = s.fighters
@@ -30,7 +42,9 @@ def test_invalid_max_hp(value):
         Stats(value, 1, 1, 1, 1, 1)
 
 
-@pytest.mark.parametrize("field", ["max_energy", "attack", "magic", "armor", "speed"])
+@pytest.mark.parametrize(
+    "field", ["max_energy", "attack", "magic", "armor", "speed"]
+)
 @pytest.mark.parametrize("value", [-1, True, 1.5])
 def test_invalid_stats(field, value):
     data = dict(max_hp=1, max_energy=0, attack=0, magic=0, armor=0, speed=0)
@@ -82,7 +96,9 @@ def test_character_resource_limits_and_inventory_independence():
         first.heal(1)
 
 
-@pytest.mark.parametrize("operation", ["take_damage", "heal", "spend_energy", "restore_energy"])
+@pytest.mark.parametrize(
+    "operation", ["take_damage", "heal", "spend_energy", "restore_energy"]
+)
 @pytest.mark.parametrize("value", [-1, True, 0.5])
 def test_resource_mutators_reject_invalid_numbers(operation, value):
     fighter = Character("p1", "x", "mage")
@@ -105,8 +121,16 @@ def test_inventory_validation_and_exhaustion():
     assert items.quantity("alien") == 0
 
 
-@pytest.mark.parametrize("action,item", [("heal", None), ("recover", None),
-    ("use_item", "health_potion"), ("use_item", "energy_potion"), ("use_item", "antidote")])
+@pytest.mark.parametrize(
+    "action,item",
+    [
+        ("heal", None),
+        ("recover", None),
+        ("use_item", "health_potion"),
+        ("use_item", "energy_potion"),
+        ("use_item", "antidote"),
+    ],
+)
 def test_unavailable_commands_are_atomic(battle, action, item):
     before = battle.snapshot()
     result = act(battle, action, item)
@@ -114,16 +138,19 @@ def test_unavailable_commands_are_atomic(battle, action, item):
     assert battle.snapshot() == before
 
 
-@pytest.mark.parametrize("changes,code", [
-    ({"match_id": "other"}, "wrong_match"),
-    ({"expected_turn": 0}, "stale_turn"),
-    ({"expected_turn": True}, "stale_turn"),
-    ({"actor_id": "p1"}, "wrong_actor"),
-    ({"action_id": "heavy_strike"}, "unknown_action"),
-    ({"action_id": "alien"}, "unknown_action"),
-    ({"target_id": "p2"}, "wrong_target"),
-    ({"item_id": "antidote"}, "unexpected_item"),
-])
+@pytest.mark.parametrize(
+    "changes,code",
+    [
+        ({"match_id": "other"}, "wrong_match"),
+        ({"expected_turn": 0}, "stale_turn"),
+        ({"expected_turn": True}, "stale_turn"),
+        ({"actor_id": "p1"}, "wrong_actor"),
+        ({"action_id": "heavy_strike"}, "unknown_action"),
+        ({"action_id": "alien"}, "unknown_action"),
+        ({"target_id": "p2"}, "wrong_target"),
+        ({"item_id": "antidote"}, "unexpected_item"),
+    ],
+)
 def test_bad_requests_do_not_change_state(battle, changes, code):
     before = battle.snapshot()
     request = ActionRequest(before.match_id, before.turn, "p2", "attack", "p1")
@@ -263,8 +290,9 @@ def test_direct_poison_arrow_kill_does_not_apply_effect():
 
 
 def test_antidote_removes_future_tick_only():
-    engine = BattleEngine(Character("p1", "Следопыт", "ranger"),
-                          Character("p2", "Маг", "mage"))
+    engine = BattleEngine(
+        Character("p1", "Следопыт", "ranger"), Character("p2", "Маг", "mage")
+    )
     act(engine, "poison_arrow")
     assert act(engine, "use_item", "antidote").accepted
     mage = engine.snapshot().fighters[1]
@@ -273,10 +301,15 @@ def test_antidote_removes_future_tick_only():
     assert mage.totals.items_used == 1
 
 
-@pytest.mark.parametrize("item,resource,loss,restored", [
-    ("health_potion", "hp", 50, 40), ("health_potion", "hp", 5, 5),
-    ("energy_potion", "energy", 40, 25), ("energy_potion", "energy", 5, 5),
-])
+@pytest.mark.parametrize(
+    "item,resource,loss,restored",
+    [
+        ("health_potion", "hp", 50, 40),
+        ("health_potion", "hp", 5, 5),
+        ("energy_potion", "energy", 40, 25),
+        ("energy_potion", "energy", 5, 5),
+    ],
+)
 def test_potion_caps_and_consumption(item, resource, loss, restored):
     mage = Character("p1", "Маг", "mage")
     if resource == "hp":
@@ -292,11 +325,14 @@ def test_potion_caps_and_consumption(item, resource, loss, restored):
 
 
 def test_initiative_and_tie():
-    for first_kind, second_kind, expected in (("warrior", "mage", "p2"),
-                                             ("ranger", "mage", "p1"),
-                                             ("mage", "mage", "p1")):
-        engine = BattleEngine(Character("p1", "A", first_kind),
-                              Character("p2", "A", second_kind))
+    for first_kind, second_kind, expected in (
+        ("warrior", "mage", "p2"),
+        ("ranger", "mage", "p1"),
+        ("mage", "mage", "p1"),
+    ):
+        engine = BattleEngine(
+            Character("p1", "A", first_kind), Character("p2", "A", second_kind)
+        )
         assert engine.snapshot().active_id == expected
         act(engine, "defend")
         assert engine.snapshot().active_id != expected
@@ -306,11 +342,16 @@ def test_draw_on_100th_action_no_next_turn(battle):
     for _ in range(100):
         assert act(battle, "defend").accepted
     s = battle.snapshot()
-    assert (s.phase, s.finish_reason, s.winner_id) == (Phase.FINISHED, "limit", None)
+    assert (s.phase, s.finish_reason, s.winner_id) == (
+        Phase.FINISHED,
+        "limit",
+        None,
+    )
     assert s.turn == 100 and s.successful_actions == 100
     before = s
-    assert not battle.submit(ActionRequest(s.match_id, s.turn, s.active_id,
-                                          "attack", s.opponent.id)).accepted
+    assert not battle.submit(
+        ActionRequest(s.match_id, s.turn, s.active_id, "attack", s.opponent.id)
+    ).accepted
     assert battle.snapshot() == before
 
 

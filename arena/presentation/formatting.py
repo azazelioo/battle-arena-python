@@ -1,4 +1,5 @@
 """Russian display text shared by CLI and GUI; never changes game state."""
+
 from arena.domain.actions import action_registry
 from arena.domain.catalog import CHARACTERS, EQUIPMENT
 from arena.domain.model import BattleEvent, BattleSnapshot, CharacterSnapshot
@@ -42,14 +43,24 @@ RULES = """БОЕВАЯ АРЕНА
 
 def fighter_text(fighter: CharacterSnapshot) -> str:
     stats = fighter.stats
-    effects = ", ".join(
-        "Защита" if e.effect_id == "guard" else f"Яд: осталось {e.remaining}"
-        for e in fighter.effects
-    ) or "Нет эффектов"
+    effects = (
+        ", ".join(
+            (
+                "Защита"
+                if e.effect_id == "guard"
+                else f"Яд: осталось {e.remaining}"
+            )
+            for e in fighter.effects
+        )
+        or "Нет эффектов"
+    )
     return (
-        f"{fighter.name} [{fighter.id}] · {CHARACTERS[fighter.archetype].name}\n"
-        f"HP {fighter.hp}/{stats.max_hp} · Энергия {fighter.energy}/{stats.max_energy}\n"
-        f"Атака {stats.attack} · Магия {stats.magic} · Броня {stats.armor} · Скорость {stats.speed}\n"
+        f"{fighter.name} [{fighter.id}] · "
+        f"{CHARACTERS[fighter.archetype].name}\n"
+        f"HP {fighter.hp}/{stats.max_hp} · "
+        f"Энергия {fighter.energy}/{stats.max_energy}\n"
+        f"Атака {stats.attack} · Магия {stats.magic} · "
+        f"Броня {stats.armor} · Скорость {stats.speed}\n"
         f"{EQUIPMENT[fighter.equipment].name} · {effects}"
     )
 
@@ -62,32 +73,52 @@ def event_text(event: BattleEvent, snapshot: BattleSnapshot) -> str:
     messages = {
         "turn": f"Ход {event.turn}: {actor}",
         "action": f"{actor}: {action}",
-        "damage": f"{target} теряет {event.actual} HP (расчёт: {event.calculated})",
+        "damage": (
+            f"{target} теряет {event.actual} HP "
+            f"(расчёт: {event.calculated})"
+        ),
         "healing": f"{target} восстанавливает {event.actual} HP",
         "energy": f"{target} восстанавливает {event.actual} энергии",
         "guard_applied": f"{target} принимает защитную стойку",
         "guard_used": f"Защита {target} поглощает часть попадания и исчезает",
         "guard_expired": f"Защита {target} истекла",
-        "poison_applied": f"{target} отравлен на {event.remaining} срабатывания",
-        "poison": (f"Яд от {actor}: {target} теряет {event.actual} HP; "
-                   f"осталось {event.remaining}"),
+        "poison_applied": (
+            f"{target} отравлен на {event.remaining} срабатывания"
+        ),
+        "poison": (
+            f"Яд от {actor}: {target} теряет {event.actual} HP; "
+            f"осталось {event.remaining}"
+        ),
         "poison_removed": f"{target} снимает отравление",
         "item_used": f"{actor} расходует предмет",
-        "finished": f"Итог: {actor}; {REASONS.get(event.action_id, event.action_id)}",
+        "finished": (
+            f"Итог: {actor}; "
+            f"{REASONS.get(event.action_id, event.action_id)}"
+        ),
     }
     return f"{event.number:03d}  {messages.get(event.kind, event.kind)}"
 
 
 def result_text(snapshot: BattleSnapshot) -> str:
-    title = (f"Победитель: {snapshot.fighter(snapshot.winner_id).name} "
-             f"[{snapshot.winner_id}]" if snapshot.winner_id else "Ничья")
-    lines = [title, REASONS.get(snapshot.finish_reason, ""),
-             f"Успешных действий: {snapshot.successful_actions}"]
+    title = (
+        f"Победитель: {snapshot.fighter(snapshot.winner_id).name} "
+        f"[{snapshot.winner_id}]"
+        if snapshot.winner_id
+        else "Ничья"
+    )
+    lines = [
+        title,
+        REASONS.get(snapshot.finish_reason, ""),
+        f"Успешных действий: {snapshot.successful_actions}",
+    ]
     for fighter in snapshot.fighters:
         totals = fighter.totals
-        lines.extend((
-            f"\n{fighter.name} [{fighter.id}]",
-            f"Прямой урон: {totals.direct_damage}; яд: {totals.poison_damage}",
-            f"Лечение: {totals.healing}; предметы: {totals.items_used}",
-        ))
+        lines.extend(
+            (
+                f"\n{fighter.name} [{fighter.id}]",
+                f"Прямой урон: {totals.direct_damage}; "
+                f"яд: {totals.poison_damage}",
+                f"Лечение: {totals.healing}; предметы: {totals.items_used}",
+            )
+        )
     return "\n".join(lines)

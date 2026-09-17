@@ -1,4 +1,5 @@
 """Mutable combat entities; snapshots never expose their live collections."""
+
 from __future__ import annotations
 
 from dataclasses import replace
@@ -10,10 +11,14 @@ from .effects import StatusEffect, effect_from_snapshot
 
 class Inventory:
     def __init__(self, quantities: dict[str, int] | None = None) -> None:
-        source = quantities if quantities is not None else dict.fromkeys(ITEMS, 1)
+        source = (
+            quantities if quantities is not None else dict.fromkeys(ITEMS, 1)
+        )
         if set(source) != set(ITEMS):
             raise ValueError("Неизвестный или отсутствующий предмет")
-        self._items = {key: integer(value, 0, 3) for key, value in source.items()}
+        self._items = {
+            key: integer(value, 0, 3) for key, value in source.items()
+        }
 
     def quantity(self, item_id: str) -> int:
         return self._items.get(item_id, 0)
@@ -28,8 +33,13 @@ class Inventory:
 
 
 class Character:
-    def __init__(self, fighter_id: str, name: str, archetype: str,
-                 equipment: str = "none") -> None:
+    def __init__(
+        self,
+        fighter_id: str,
+        name: str,
+        archetype: str,
+        equipment: str = "none",
+    ) -> None:
         if not fighter_id:
             raise ValueError("Пустой идентификатор бойца")
         self._id = fighter_id
@@ -104,23 +114,34 @@ class Character:
         return tuple(self._effects.values())
 
     def credit(self, **amounts: int) -> None:
-        self._totals = replace(self._totals, **{
-            key: getattr(self._totals, key) + integer(value)
-            for key, value in amounts.items()
-        })
+        self._totals = replace(
+            self._totals,
+            **{
+                key: getattr(self._totals, key) + integer(value)
+                for key, value in amounts.items()
+            },
+        )
 
     def snapshot(self) -> CharacterSnapshot:
         return CharacterSnapshot(
-            self.id, self._name, self.archetype, self._equipment, self.stats,
-            self.hp, self.energy, self.inventory.snapshot(),
-            tuple(e.snapshot() for e in self.effects()), self.last_action_id,
+            self.id,
+            self._name,
+            self.archetype,
+            self._equipment,
+            self.stats,
+            self.hp,
+            self.energy,
+            self.inventory.snapshot(),
+            tuple(e.snapshot() for e in self.effects()),
+            self.last_action_id,
             self._totals,
         )
 
     @classmethod
     def from_snapshot(cls, snapshot: CharacterSnapshot) -> Character:
-        result = cls(snapshot.id, snapshot.name, snapshot.archetype,
-                     snapshot.equipment)
+        result = cls(
+            snapshot.id, snapshot.name, snapshot.archetype, snapshot.equipment
+        )
         if result.stats != snapshot.stats:
             raise ValueError("Характеристики не соответствуют снаряжению")
         result._hp = integer(snapshot.hp, 0, result.stats.max_hp)

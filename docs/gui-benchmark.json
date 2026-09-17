@@ -1,0 +1,31 @@
+{
+  "machine": {
+    "python": "3.12.14",
+    "platform": "macOS-26.4-arm64-arm-64bit",
+    "machine": "arm64",
+    "processor": "Apple M3 Pro",
+    "process_peak_rss_bytes": 117768192,
+    "rss_scope": "OS process high-water mark; includes native libraries"
+  },
+  "tk_version": "9.0.4",
+  "cycles": 100,
+  "screens_per_cycle": 6,
+  "max_cycle_ms": 68.27495800098404,
+  "widgets_before": 20,
+  "widgets_after": 20,
+  "widget_count_range": [
+    20,
+    20
+  ],
+  "no_widget_growth": true,
+  "pending_callbacks_range": [
+    0,
+    0
+  ],
+  "no_pending_callbacks": true,
+  "python_current_bytes": 644014,
+  "python_peak_bytes": 692360,
+  "process_peak_rss_before": 111001600,
+  "process_peak_rss_after": 117768192,
+  "memory_note": "RSS is a high-water mark, not a proof of absence of leaks. Widget and callback counts check retained GUI resources."
+}
