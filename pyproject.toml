@@ -29,6 +29,7 @@ strict = true
 packages = ["arena"]
 
 [tool.coverage.run]
+core = "pytrace"
 branch = true
 source = ["arena"]
 
