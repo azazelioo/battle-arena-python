@@ -1,5 +1,3 @@
-"""Persistent settings, three slots and a deduplicated history of 50 results."""
-
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass

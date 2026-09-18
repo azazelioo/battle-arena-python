@@ -1,5 +1,3 @@
-"""Contract, restoration and error-path checks that complement reference games."""
-
 import json
 from dataclasses import replace
 from pathlib import Path

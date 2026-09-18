@@ -1,5 +1,3 @@
-"""Fail CI when measured technical acceptance requirements regress."""
-
 from __future__ import annotations
 
 import argparse

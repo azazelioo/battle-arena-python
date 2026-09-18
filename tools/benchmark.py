@@ -1,5 +1,3 @@
-"""Reproducible engine latency and bounded-history Python memory measurements."""
-
 from __future__ import annotations
 
 import gc

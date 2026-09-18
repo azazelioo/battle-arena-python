@@ -1,5 +1,3 @@
-"""Measure repeated real Tk screens and cancellation of pending bot callbacks."""
-
 from __future__ import annotations
 
 import argparse

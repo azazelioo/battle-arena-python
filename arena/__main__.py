@@ -1,5 +1,3 @@
-"""Run with python -m arena, --cli or --test."""
-
 from __future__ import annotations
 
 import argparse

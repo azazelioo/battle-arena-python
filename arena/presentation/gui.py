@@ -1,5 +1,3 @@
-"""Tkinter screens. Every mutation goes through GameController."""
-
 from __future__ import annotations
 
 import tkinter as tk

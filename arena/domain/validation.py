@@ -1,5 +1,3 @@
-"""Cross-field invariants required before restoring a battle."""
-
 from .actions import action_registry
 from .catalog import ACTION_LIMIT, CHARACTERS, ITEMS, final_stats
 from .model import BattleSnapshot, Phase, integer

@@ -1,5 +1,3 @@
-"""Stable machine-readable error categories at the filesystem boundary."""
-
 from enum import StrEnum
 from pathlib import Path
 

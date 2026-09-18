@@ -1,5 +1,3 @@
-"""Deterministic strategies inspect only immutable snapshots and previews."""
-
 from abc import ABC, abstractmethod
 from typing import override
 

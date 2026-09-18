@@ -1,5 +1,3 @@
-"""The single transaction boundary for all game commands."""
-
 from __future__ import annotations
 
 from dataclasses import replace

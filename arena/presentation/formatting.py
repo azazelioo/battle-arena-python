@@ -1,5 +1,3 @@
-"""Russian display text shared by CLI and GUI; never changes game state."""
-
 from arena.domain.actions import action_registry
 from arena.domain.catalog import CHARACTERS, EQUIPMENT
 from arena.domain.model import BattleEvent, BattleSnapshot, CharacterSnapshot

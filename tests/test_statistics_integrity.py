@@ -1,5 +1,3 @@
-"""A save must not silently introduce false totals or hidden bot state."""
-
 from dataclasses import replace
 import json
 

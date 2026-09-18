@@ -1,5 +1,3 @@
-"""Real-widget smoke checks; skipped only if Tcl/Tk/display is unavailable."""
-
 from unittest.mock import patch
 
 import pytest

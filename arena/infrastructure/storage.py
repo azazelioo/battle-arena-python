@@ -1,5 +1,3 @@
-"""Versioned JSON, strict decoding and atomic replacement of local files."""
-
 from __future__ import annotations
 
 import json

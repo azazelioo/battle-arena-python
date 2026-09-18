@@ -1,5 +1,3 @@
-"""Read-only history navigation and event-by-event resource inspection."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

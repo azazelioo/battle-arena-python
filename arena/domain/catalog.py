@@ -1,5 +1,3 @@
-"""The single source of game balance; no I/O and no interface imports."""
-
 from dataclasses import dataclass
 from types import MappingProxyType
 

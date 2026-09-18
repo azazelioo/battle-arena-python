@@ -1,5 +1,3 @@
-"""Scripted user journeys test adapters, prompts and recovery without a terminal."""
-
 from unittest.mock import patch
 
 import pytest

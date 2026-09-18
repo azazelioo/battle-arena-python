@@ -1,5 +1,3 @@
-"""Scrollable desktop content keeps large user-selected text reachable."""
-
 from __future__ import annotations
 
 import tkinter as tk

@@ -1,5 +1,3 @@
-"""History browsing is a read-only application scenario, not a second engine."""
-
 from dataclasses import replace
 
 import pytest

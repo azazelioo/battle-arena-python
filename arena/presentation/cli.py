@@ -1,5 +1,3 @@
-"""Console adapter; injectable streams make complete sessions testable."""
-
 from __future__ import annotations
 
 from typing import Callable

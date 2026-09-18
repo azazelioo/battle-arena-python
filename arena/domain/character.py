@@ -1,5 +1,3 @@
-"""Mutable combat entities; snapshots never expose their live collections."""
-
 from __future__ import annotations
 
 from dataclasses import replace

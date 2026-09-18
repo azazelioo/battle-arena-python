@@ -1,5 +1,3 @@
-"""Commands share one availability/preview/execute contract."""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

@@ -1,5 +1,3 @@
-"""Polymorphic effect hooks. The engine controls when each hook runs."""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

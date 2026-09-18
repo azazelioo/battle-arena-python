@@ -1,5 +1,3 @@
-"""Verify units, platform fallbacks and the source-line counting convention."""
-
 import importlib.util
 import io
 from pathlib import Path

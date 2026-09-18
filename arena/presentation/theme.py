@@ -1,5 +1,3 @@
-"""Shared palette and original vector artwork for the desktop arena."""
-
 from __future__ import annotations
 
 import math

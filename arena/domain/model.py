@@ -1,5 +1,3 @@
-"""Value objects shared by the engine, persistence and both interfaces."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, fields

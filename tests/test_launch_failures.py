@@ -1,5 +1,3 @@
-"""Exercise the real entrypoint, including recoverable startup failures."""
-
 import builtins
 import runpy
 import sys
